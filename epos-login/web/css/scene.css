@@ -1,0 +1,353 @@
+/* The set: room, counter, receipt printer, card reader.
+   Light comes from the upper left. Every shadow falls down-right and carries
+   the warm shadow hue - see tokens.css.
+
+   The counter is a genuine 3D plane. A vertical gradient can never read as a
+   horizontal surface no matter how it is shaded - the grain has to actually
+   converge. It carries no text, so the transform costs nothing. Objects on it
+   stay in screen space and are anchored by elongated cast shadows. */
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: #EFE9DF;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ------------------------------------------------------------------ *
+ * Room - the wall, falling into shade toward the counter
+ * ------------------------------------------------------------------ */
+.room {
+  position: fixed;
+  inset: 0 0 42% 0;
+  background:
+    radial-gradient(120% 150% at 16% -34%, #FFFFFF 0%, #FBF9F6 30%, #F1EEE7 62%, #E6E1D6 100%);
+}
+
+/* Ambient occlusion into the corner where wall meets counter. No hard
+   line - the junction is a gradient or the counter reads as a wall. */
+.room::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 26%;
+  background: linear-gradient(to top, hsl(30 22% 52% / 0.30), transparent 88%);
+}
+
+/* ------------------------------------------------------------------ *
+ * Counter
+ * ------------------------------------------------------------------ */
+.counter {
+  position: fixed;
+  left: 50%;
+  top: 58%;
+  width: 300vw;
+  height: 120vh;
+  margin-left: -150vw;
+  transform-origin: 50% 0;
+  transform: perspective(1150px) rotateX(63deg);
+  background:
+    /* the pool of key light, offset left and up-scene */
+    radial-gradient(56% 40% at 36% 14%, hsl(46 70% 100% / 0.72), transparent 70%),
+    /* surface tone, lightening as it comes toward us */
+    linear-gradient(to bottom, #C9B99C 0%, #D9CBB0 10%, #E6DAC2 30%, #EFE5D1 60%, #E9DDC6 100%);
+}
+
+/* Wood grain running away from us. On the rotated plane these lines
+   genuinely converge, which is what sells the surface. */
+.counter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  background-image:
+    repeating-linear-gradient(90deg, hsl(28 30% 44% / 0.055) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(90deg, hsl(28 30% 44% / 0.030) 0 1px, transparent 1px 2px);
+}
+
+/* Ambient occlusion along the far edge, where the counter meets the wall. */
+.counter::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 13%;
+  background: linear-gradient(to bottom, hsl(28 28% 34% / 0.5), transparent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Lane - everything standing on the counter shares one baseline
+ * ------------------------------------------------------------------ */
+.stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+}
+
+.lane {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 54px);
+  padding-bottom: clamp(40px, 8.5vh, 92px);
+}
+
+/* ------------------------------------------------------------------ *
+ * Cast shadows
+ * Two parts per object: a tight dark contact patch directly beneath it,
+ * and a long soft throw offset down-right away from the key light.
+ * ------------------------------------------------------------------ */
+.cast {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cast::before,
+.cast::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  border-radius: 50%;
+}
+
+/* long throw */
+.cast::before {
+  width: var(--throw-w, 175%);
+  height: var(--throw-h, 26px);
+  translate: -42% 40%;
+  background: radial-gradient(closest-side,
+    hsl(var(--shadow-hue) / 0.42), hsl(var(--shadow-hue) / 0.14) 62%, transparent 100%);
+  filter: blur(8px);
+}
+
+/* contact patch */
+.cast::after {
+  width: var(--contact-w, 82%);
+  height: var(--contact-h, 11px);
+  translate: -50% 26%;
+  background: radial-gradient(closest-side,
+    hsl(var(--shadow-hue) / 0.80), hsl(var(--shadow-hue) / 0.40) 52%, transparent 100%);
+  filter: blur(3px);
+}
+
+/* ------------------------------------------------------------------ *
+ * Receipt printer - a squat thermal box, pushed slightly back
+ * ------------------------------------------------------------------ */
+.printer {
+  position: relative;
+  width: calc(var(--tw) * 0.235);
+  flex: none;
+  transform: translateY(calc(var(--tw) * -0.028)) scale(0.96);
+  transform-origin: bottom center;
+  --throw-w: 195%;
+  --contact-w: 96%;
+}
+
+.printer__body {
+  position: relative;
+  z-index: 1;
+  aspect-ratio: 1 / 0.92;
+  border-radius: 10px 10px 6px 6px;
+  background:
+    linear-gradient(168deg, #4B535D 0%, #3A414A 30%, #2C323A 68%, #23272E 100%);
+  box-shadow:
+    inset 0 1px 0 hsl(210 20% 100% / 0.20),
+    inset -10px 0 16px -12px hsl(210 20% 0% / 0.6),
+    inset 0 -1px 0 hsl(34 40% 80% / 0.14),
+    var(--sh-4);
+}
+
+/* Hinged lid: the top third lifts, so there is a seam and a highlight. */
+.printer__body::before {
+  content: "";
+  position: absolute;
+  inset: 34% 0 auto 0;
+  height: 2px;
+  background: linear-gradient(to bottom,
+    hsl(210 14% 0% / 0.42) 0 1px, hsl(210 20% 100% / 0.09) 1px);
+}
+
+/* Paper exit slot, right at the front of the lid. */
+.printer__slot {
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  top: 26%;
+  height: 6px;
+  border-radius: 3px;
+  background: #12161B;
+  box-shadow:
+    inset 0 2px 3px hsl(210 20% 0% / 0.9),
+    0 1px 0 hsl(210 20% 100% / 0.10);
+}
+
+/* The stub of paper that is always present, so the first print in a later
+   step does not appear out of nowhere. It drapes over the front face. */
+.printer__paper {
+  position: absolute;
+  z-index: 2;
+  left: 26%;
+  width: 48%;
+  top: calc(26% + 3px);
+  height: auto;
+  transform: rotate(-1.2deg);
+  transform-origin: top center;
+  filter: drop-shadow(0 4px 4px hsl(var(--shadow-hue) / 0.34));
+}
+
+.printer__led {
+  position: absolute;
+  right: 11%;
+  top: 12%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #626C77, #3C444D);
+  box-shadow: inset 0 1px 1px hsl(210 20% 0% / 0.7);
+}
+
+/* Rubber feet, just visible at the base. */
+.printer__body::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: #171B21;
+}
+
+/* ------------------------------------------------------------------ *
+ * Card reader - leans back on a cradle, sits nearest the front
+ * ------------------------------------------------------------------ */
+.reader {
+  position: relative;
+  width: calc(var(--tw) * 0.165);
+  flex: none;
+  transform: translateY(calc(var(--tw) * 0.014));
+  transform-origin: bottom center;
+  --throw-w: 210%;
+  --throw-h: 24px;
+  --contact-w: 104%;
+  --contact-h: 11px;
+}
+
+.reader__body {
+  position: relative;
+  z-index: 1;
+  aspect-ratio: 1 / 1.42;
+  padding: 10% 10% 13%;
+  border-radius: 13px 13px 7px 7px;
+  background: linear-gradient(166deg, #525A64 0%, #3B424B 38%, #292E36 100%);
+  transform: perspective(760px) rotateX(16deg);
+  transform-origin: bottom center;
+  box-shadow:
+    inset 0 1px 0 hsl(210 20% 100% / 0.24),
+    inset -8px 0 14px -10px hsl(210 20% 0% / 0.5),
+    var(--sh-4);
+}
+
+.reader__screen {
+  height: 38%;
+  border-radius: 4px;
+  background: linear-gradient(170deg, #1D242B, #11161B);
+  box-shadow:
+    inset 0 1px 3px hsl(210 20% 0% / 0.9),
+    inset 0 0 0 1px hsl(210 20% 100% / 0.06);
+}
+
+.reader__keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8%;
+  margin-top: 11%;
+}
+
+.reader__keys i {
+  display: block;
+  aspect-ratio: 1 / 0.6;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #626A75, #464D57);
+  box-shadow:
+    inset 0 1px 0 hsl(210 20% 100% / 0.26),
+    0 1px 1px hsl(210 20% 0% / 0.45);
+}
+
+.reader__slot {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 5.5%;
+  height: 4px;
+  border-radius: 2px;
+  background: #10141A;
+  box-shadow: inset 0 1px 2px hsl(210 20% 0% / 0.9);
+}
+
+.reader__led {
+  position: absolute;
+  right: 11%;
+  top: 4%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #626C77, #3C444D);
+  box-shadow: inset 0 1px 1px hsl(210 20% 0% / 0.7);
+}
+
+.reader__cradle {
+  position: relative;
+  z-index: 1;
+  height: calc(var(--tw) * 0.02);
+  margin: -3px 4% 0;
+  border-radius: 0 0 9px 9px;
+  background: var(--alu);
+  box-shadow:
+    inset 0 1px 0 hsl(210 30% 100% / 0.65),
+    var(--sh-2);
+}
+
+/* ------------------------------------------------------------------ *
+ * Atmosphere
+ * ------------------------------------------------------------------ */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(78% 68% at 46% 40%, transparent 42%, hsl(28 26% 40% / 0.20) 100%);
+}
+
+/* Narrow tier. Full responsive work is step 12; this is enough that the set
+   is not obviously broken on a phone - the terminal takes the frame and the
+   counter rises to meet it rather than stranding a wall of empty space. */
+@media (max-width: 760px) {
+  :root { --tw: min(88vw, 430px); }
+  .printer, .reader { display: none; }
+  .room { inset: 0 0 58% 0; }
+  .counter { top: 42%; height: 150vh; }
+  .lane { padding-bottom: clamp(56px, 15vh, 132px); }
+}

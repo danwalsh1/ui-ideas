@@ -1,0 +1,14 @@
+# The Open Lane - EPOS login
+#
+# Step 1 serves the static set only; the auth service joins at build step 6.
+# Port 8089 so this can run alongside kinetic-topography on 8088.
+services:
+  web:
+    image: nginx:1.27-alpine
+    container_name: epos-web
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8089:80"
+    restart: unless-stopped

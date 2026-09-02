@@ -1,0 +1,57 @@
+/* The Open Lane - design tokens.
+   Single source of truth for the palette, type and motion. Everything a
+   customer would ever want to rebrand resolves through --brand. */
+
+:root {
+  /* ---- Surfaces ------------------------------------------------- */
+  --paper: #FCFBF8;
+  --counter: #EDE7DD;
+  --counter-shade: #DDD4C7;
+  --shell: #2B3037;
+  --screen: #FFFFFF;
+  --surface: #F4F6F9;
+
+  /* ---- Ink ------------------------------------------------------ */
+  --ink: #161D26;
+  --ink-soft: #5A6675;
+  --ink-faint: #8A94A1;
+  --rule: #E2E6EC;
+
+  /* ---- Brand: the one value a customer swaps -------------------- */
+  --brand: #4356E0;
+  --brand-soft: #E8EAFC;
+
+  /* ---- Semantics. Never used for brand, never mixed with it. ---- */
+  --approved: #16A45A;
+  --declined: #D8332F;
+  --pending: #E8930C;
+
+  /* ---- Light rig ------------------------------------------------
+     One key light, upper left. Every shadow in the scene falls down
+     and to the right, and every shadow is warm - a neutral black
+     shadow on a warm counter reads as dirt, not shade. */
+  --shadow-hue: 28 18% 26%;
+  --sh-1: 0 1px 2px hsl(var(--shadow-hue) / 0.07);
+  --sh-2: 0 3px 6px hsl(var(--shadow-hue) / 0.07), 0 1px 2px hsl(var(--shadow-hue) / 0.06);
+  --sh-3: 0 8px 18px hsl(var(--shadow-hue) / 0.09), 0 2px 5px hsl(var(--shadow-hue) / 0.07);
+  --sh-4: 0 18px 38px hsl(var(--shadow-hue) / 0.12), 0 6px 12px hsl(var(--shadow-hue) / 0.08);
+  --sh-5: 0 34px 70px -14px hsl(var(--shadow-hue) / 0.20), 0 12px 26px hsl(var(--shadow-hue) / 0.10);
+
+  /* Brushed aluminium, used by the stand and the reader cradle. */
+  --alu: linear-gradient(178deg, #F1F3F5 0%, #DDE1E6 26%, #BFC5CC 58%, #AAB1B9 78%, #CBD1D7 100%);
+  --alu-edge: #9AA1A9;
+
+  /* ---- Type ----------------------------------------------------- */
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* ---- Geometry --------------------------------------------------
+     The whole set is sized from the terminal, so the composition holds
+     together at any viewport without per-element breakpoints. */
+  --tw: clamp(300px, 47vw, 660px);
+  --th: calc(var(--tw) * 0.70);
+
+  /* ---- Motion (unused in step 1 - the set is static) ------------- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
