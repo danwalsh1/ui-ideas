@@ -97,7 +97,7 @@ body {
   align-items: flex-end;
   justify-content: center;
   gap: clamp(16px, 3vw, 54px);
-  padding-bottom: clamp(150px, 24vh, 235px);   /* clear of the belt */
+  padding-bottom: var(--lane-base);
 }
 
 /* ------------------------------------------------------------------ *
@@ -352,9 +352,9 @@ body {
   :root {
     --tw: min(92vw, 420px);
     --th: calc(var(--tw) * 1.16);
+    --lane-base: clamp(56px, 15vh, 132px);
   }
   .printer, .reader { display: none; }
   .room { inset: 0 0 58% 0; }
   .counter { top: 42%; height: 150vh; }
-  .lane { padding-bottom: clamp(56px, 15vh, 132px); }
 }

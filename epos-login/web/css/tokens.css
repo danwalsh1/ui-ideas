@@ -50,6 +50,8 @@
      together at any viewport without per-element breakpoints. */
   --tw: clamp(320px, 48vw, 700px);   /* leaves the foreground to the belt */
   --th: calc(var(--tw) * 0.70);
+  /* Shared baseline: everything standing on the counter sits on this line. */
+  --lane-base: clamp(150px, 24vh, 235px);
 
   /* ---- Motion (unused in step 1 - the set is static) ------------- */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);

@@ -1,0 +1,291 @@
+/* Stage state: one attribute on <html> drives every peripheral in the set.
+   No component decides its own state locally - they all read from here.
+
+   Behaviour (belt speed, reader wording) lives in the table in stage.js.
+   Everything purely presentational lives here, keyed off [data-state], so
+   colour never leaks into the logic and logic never hard-codes a hex.
+
+   The tone tokens are registered with @property. An unregistered custom
+   property has no type, so `background: var(--tone)` will not interpolate
+   when the token changes - it was leaving every peripheral frozen on the
+   previous state's colour. Registered, the token itself animates, and every
+   consumer crossfades in lockstep for free: LED, lane light, customer
+   display and room wash all move together, with no per-element transition
+   to keep in sync. */
+
+@property --tone {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #16A45A;
+}
+@property --tone-glow {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+@property --tone-wash {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+:root {
+  transition:
+    --tone 360ms linear,
+    --tone-glow 420ms linear,
+    --tone-wash 520ms var(--ease-in-out);
+}
+
+:root {
+  /* Default tone: the lane is open. */
+  --tone: var(--approved);
+  --tone-ink: #FFFFFF;
+  --tone-glow: hsl(147 74% 38% / 0.30);
+  --tone-wash: hsl(147 74% 40% / 0);
+  --led-idle: #4E5761;
+}
+
+/* Waiting on something: arming, authorising, or locked out. */
+:root[data-state="entering"],
+:root[data-state="authorising"],
+:root[data-state="locked"] {
+  --tone: var(--pending);
+  --tone-glow: hsl(37 88% 48% / 0.34);
+}
+:root[data-state="authorising"] { --tone-wash: hsl(37 88% 50% / 0.10); }
+:root[data-state="locked"]      { --tone-wash: hsl(37 88% 50% / 0.13); }
+
+/* Refused. */
+:root[data-state="declined"] {
+  --tone: var(--declined);
+  --tone-glow: hsl(1 66% 52% / 0.36);
+  --tone-wash: hsl(1 70% 52% / 0.12);
+}
+
+/* Let in. */
+:root[data-state="approved"] {
+  --tone-glow: hsl(147 74% 42% / 0.42);
+  --tone-wash: hsl(147 70% 45% / 0.10);
+}
+
+/* ------------------------------------------------------------------ *
+ * Tone wash - the whole room picks up the state, very slightly
+ * ------------------------------------------------------------------ */
+.tone-wash {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(78% 62% at 50% 56%, var(--tone-wash), transparent 76%);
+}
+
+/* ------------------------------------------------------------------ *
+ * Lane light - the checkout number sign, and the honest state display.
+ * Green means the lane is open. Amber means wait. Red means stop. That
+ * is exactly what it means in a shop, so it needs no explanation.
+ * ------------------------------------------------------------------ */
+.lanelight {
+  position: absolute;
+  left: clamp(10px, 5.5vw, 132px);
+  bottom: var(--lane-base);
+  width: calc(var(--tw) * 0.088);
+  height: calc(var(--tw) * 0.48);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Glow thrown onto the wall behind the head. */
+.lanelight::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 320%;
+  aspect-ratio: 1;
+  translate: -50% -32%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--tone-glow), transparent 70%);
+  filter: blur(10px);
+}
+
+.lanelight__head {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 0.82;
+  flex: none;
+  padding: 11%;
+  border-radius: 5px;
+  background: linear-gradient(172deg, #414852 0%, #2D333B 55%, #22272E 100%);
+  box-shadow:
+    inset 0 1px 0 hsl(210 22% 100% / 0.22),
+    var(--sh-3);
+}
+
+.lanelight__face {
+  position: relative;
+  height: 100%;
+  border-radius: 3px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--tone);
+  color: var(--tone-ink);
+  font-family: var(--mono);
+  font-size: calc(var(--tw) * 0.03);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow:
+    inset 0 0 10px hsl(0 0% 100% / 0.34),
+    0 0 12px var(--tone-glow);
+}
+
+/* A beacon sweep while the till is thinking. */
+.lanelight__face::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  opacity: 0;
+  background: conic-gradient(from 0deg,
+    hsl(0 0% 100% / 0), hsl(0 0% 100% / 0.42) 12%, hsl(0 0% 100% / 0) 30%);
+}
+:root[data-state="authorising"] .lanelight__face::after {
+  opacity: 1;
+  animation: beacon 2.1s linear infinite;
+}
+@keyframes beacon { to { rotate: 360deg; } }
+
+/* Locked out: a slow, patient blink. */
+:root[data-state="locked"] .lanelight__face { animation: lightblink 1.6s steps(1) infinite; }
+@keyframes lightblink { 50% { opacity: 0.28; } }
+
+.lanelight__pole {
+  width: 17%;
+  flex: 1;
+  background: var(--alu);
+  box-shadow: inset -3px 0 5px -3px hsl(210 20% 0% / 0.5);
+}
+
+/* Where the pole meets the counter. */
+.lanelight__foot {
+  width: 62%;
+  height: calc(var(--tw) * 0.012);
+  flex: none;
+  border-radius: 3px 3px 4px 4px;
+  background: var(--alu);
+  box-shadow: 0 3px 6px -2px hsl(var(--shadow-hue) / 0.4);
+}
+
+/* ------------------------------------------------------------------ *
+ * Card reader - the state machine made physical
+ * ------------------------------------------------------------------ */
+.reader__led {
+  background: var(--led-idle);
+  transition: background 260ms linear, box-shadow 260ms linear;
+}
+
+
+:root:not([data-state="idle"]):not([data-state="held"]):not([data-state="locked"]) .reader__led {
+  background: var(--tone);
+  box-shadow:
+    inset 0 1px 1px hsl(210 20% 0% / 0.35),
+    0 0 7px var(--tone),
+    0 0 14px var(--tone-glow);
+}
+
+/* Arming: a slow pulse while credentials are being entered. */
+:root[data-state="entering"] .reader__led { animation: ledpulse 1.5s var(--ease-in-out) infinite; }
+@keyframes ledpulse { 50% { opacity: 0.4; } }
+
+/* Locked: the reader goes dark entirely - the message moves to the terminal
+   screen at step 10. A dead reader showing lit text would contradict itself. */
+:root[data-state="locked"] .reader__led {
+  background: #30363D;
+  box-shadow: inset 0 1px 1px hsl(210 20% 0% / 0.7);
+}
+
+.reader__text {
+  display: block;
+  padding: 0 6%;
+  color: var(--tone);
+  font-family: var(--mono);
+  font-size: calc(var(--tw) * 0.0125);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: pre-line;          /* honours the line break in the table */
+  text-shadow: 0 0 6px var(--tone-glow);
+}
+
+.reader__screen {
+  display: grid;
+  place-items: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * Customer-facing display on the reverse of the terminal takes the tone
+ * ------------------------------------------------------------------ */
+.terminal::before {
+  background: radial-gradient(closest-side, var(--tone-glow), transparent 72%);
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: states still change colour, nothing pulses or sweeps
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  :root { transition-duration: 120ms; }
+  :root[data-state="authorising"] .lanelight__face::after,
+  :root[data-state="locked"] .lanelight__face,
+  :root[data-state="entering"] .reader__led { animation: none; }
+  :root[data-state="authorising"] .lanelight__face::after { opacity: 0.25; }
+}
+
+@media (max-width: 760px) {
+  .lanelight { display: none; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Debug switcher - only mounted when the page is opened with ?debug
+ * ------------------------------------------------------------------ */
+.debug {
+  position: fixed;
+  z-index: 90;
+  left: 50%;
+  bottom: 10px;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  border-radius: 9px;
+  border: 1px solid hsl(215 20% 60% / 0.35);
+  background: hsl(220 18% 12% / 0.86);
+  backdrop-filter: blur(8px);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #C9D2DD;
+}
+.debug__label {
+  padding-right: 4px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+.debug button {
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: hsl(215 18% 26% / 0.7);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.debug button:hover { background: hsl(215 18% 34% / 0.85); }
+.debug button[aria-pressed="true"] {
+  background: var(--tone);
+  border-color: hsl(0 0% 100% / 0.35);
+  color: #0B1017;
+  font-weight: 700;
+}

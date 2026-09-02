@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-state="idle">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/terminal.css">
 <link rel="stylesheet" href="css/pos.css">
 <link rel="stylesheet" href="css/lane.css">
+<link rel="stylesheet" href="css/stage.css">
 </head>
 <body>
 
@@ -92,6 +93,15 @@
 <div class="counter" aria-hidden="true"></div>
 
 <div class="stage">
+
+  <!-- The lane light. Green open, amber wait, red stop - exactly what it
+       means in a shop, so it needs no explanation. -->
+  <div class="lanelight" aria-hidden="true">
+    <div class="lanelight__head"><div class="lanelight__face">04</div></div>
+    <div class="lanelight__pole"></div>
+    <div class="lanelight__foot"></div>
+  </div>
+
   <div class="lane">
 
     <!-- Receipt printer. In later steps this is the error channel. -->
@@ -231,7 +241,7 @@
       <span class="cast"></span>
       <div class="reader__body">
         <span class="reader__led"></span>
-        <div class="reader__screen"></div>
+        <div class="reader__screen"><span class="reader__text"></span></div>
         <div class="reader__keys">
           <i></i><i></i><i></i>
           <i></i><i></i><i></i>
@@ -279,6 +289,7 @@
   <div class="belt__rail belt__rail--front"></div>
 </div>
 
+<div class="tone-wash" aria-hidden="true"></div>
 <div class="vignette" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
 

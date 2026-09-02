@@ -99,6 +99,7 @@ export class Lane {
     this.settleTimer = 0;
     this.travelled = 0;
     this.speed = SPEED;
+    this.speedTarget = SPEED;
     // Bumped whenever the sale resets. A line in flight when the sale closes
     // belongs to the sale that scanned it, not to the one that follows.
     this.saleId = 0;
@@ -141,12 +142,17 @@ export class Lane {
     requestAnimationFrame(loop);
   }
 
-  /** Step 4 drives these from the state machine. */
-  setSpeed(v) { this.speed = v; }
+  /** The stage drives this. 1 is the open lane, 0 halts the belt. */
+  setSpeedScale(k) { this.speedTarget = SPEED * Math.max(0, k); }
   pause() { this.running = false; }
 
   /* ---- the frame -------------------------------------------------- */
   _frame(dt) {
+    // Ease toward the target so a state change reads as the belt slowing
+    // rather than a cut. Fast enough that a halt still feels decisive.
+    this.speed += (this.speedTarget - this.speed) * (1 - Math.exp(-5.5 * dt));
+    const halted = this.speed < 2;
+
     const move = this.speed * dt;
     this.travelled += move;
 
@@ -156,8 +162,9 @@ export class Lane {
     this.seam.style.transform =
       `translateX(${(this.travelled % seamCycle) - 30}px)`;
 
-    // Spawn the next item in the basket.
-    if (this.spawnIndex < this.basket.length) {
+    // Spawn the next item in the basket. Never while the belt is stopped -
+    // goods would pile up unseen at the head of the lane.
+    if (!halted && this.spawnIndex < this.basket.length) {
       this.spawnTimer -= dt;
       if (this.spawnTimer <= 0) {
         this._spawn();
@@ -182,8 +189,9 @@ export class Lane {
       }
     }
 
-    // Close the sale a beat after the last item is scanned.
-    if (this.scannedCount >= this.basket.length && this.basket.length) {
+    // Close the sale a beat after the last item is scanned. A halted lane
+    // holds the sale open: nothing completes while the till is thinking.
+    if (!halted && this.scannedCount >= this.basket.length && this.basket.length) {
       this.settleTimer += dt;
       if (this.settleTimer >= SETTLE) this._closeSale();
     }
