@@ -1,0 +1,645 @@
+/* The Kinetic Topography — interface layer.
+   The canvas does the spectacle; everything here is glass sitting on top of it. */
+
+:root {
+  --cyan: #38e8ff;
+  --violet: #a468ff;
+  --gold: #ffd27a;
+  --crimson: #ff4a5e;
+
+  --ink: #eaf6ff;
+  --ink-dim: #93aec2;
+  --ink-faint: #64809a;
+
+  --glass: rgba(255, 255, 255, 0.055);
+  --glass-edge: rgba(196, 236, 255, 0.16);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: #04060a;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, input, select { font: inherit; color: inherit; }
+
+/* ------------------------------------------------------------------ *
+ * Canvas + full-screen effect layers
+ * ------------------------------------------------------------------ */
+#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+body.no-gl #gl { display: none; }
+
+/* Only used when WebGL2 is unavailable. */
+#fallback-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: none;
+  background:
+    radial-gradient(60% 50% at 22% 18%, rgba(56, 232, 255, 0.16), transparent 70%),
+    radial-gradient(55% 45% at 78% 78%, rgba(164, 104, 255, 0.16), transparent 70%),
+    radial-gradient(90% 70% at 50% 110%, rgba(56, 232, 255, 0.10), transparent 70%),
+    #05070c;
+  animation: drift 26s var(--ease-in-out) infinite alternate;
+}
+body.no-gl #fallback-bg { display: block; }
+@keyframes drift {
+  from { filter: hue-rotate(0deg) saturate(1); transform: scale(1); }
+  to   { filter: hue-rotate(28deg) saturate(1.25); transform: scale(1.08); }
+}
+
+#flash {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(45% 45% at 50% 46%, rgba(255, 231, 178, 0.95), rgba(120, 255, 235, 0.35) 45%, transparent 72%);
+  mix-blend-mode: screen;
+}
+body.is-flashing #flash { animation: flash 520ms var(--ease) forwards; }
+@keyframes flash {
+  0%   { opacity: 0; transform: scale(0.6); }
+  18%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+#glitch-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms linear;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 60, 90, 0.09) 0 1px, transparent 1px 3px),
+    radial-gradient(80% 60% at 50% 50%, rgba(255, 40, 70, 0.20), transparent 75%);
+  mix-blend-mode: screen;
+}
+body.is-glitching #glitch-overlay { opacity: 1; animation: tear 120ms steps(2) infinite; }
+@keyframes tear {
+  0%   { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(-6px, 2px, 0); }
+  100% { transform: translate3d(4px, -1px, 0); }
+}
+
+/* ------------------------------------------------------------------ *
+ * Stage + glass panel
+ * ------------------------------------------------------------------ */
+#stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  pointer-events: none;
+}
+
+.panel {
+  --charge: 0;
+  position: relative;
+  width: min(420px, 100%);
+  padding: 2.35rem 2.1rem 1.35rem;
+  border-radius: 26px;
+  pointer-events: auto;
+  isolation: isolate;
+
+  /* Two layers: a specular sheen over a dark tint. The tint is what keeps the
+     text legible when the field behind the glass turns bright violet. */
+  background:
+    linear-gradient(158deg, rgba(255, 255, 255, 0.085) 0%, rgba(255, 255, 255, 0.026) 42%, rgba(255, 255, 255, 0.05) 100%),
+    linear-gradient(180deg, rgba(6, 12, 22, 0.60), rgba(5, 9, 18, 0.50));
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(26px) saturate(155%);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+  box-shadow:
+    0 34px 90px -34px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 -1px 0 rgba(255, 255, 255, 0.05) inset;
+
+  opacity: 0;
+  transform: translateY(26px) scale(0.965);
+  filter: blur(10px);
+  transition:
+    opacity 900ms var(--ease),
+    transform 900ms var(--ease),
+    filter 900ms var(--ease),
+    border-color 400ms linear;
+}
+.panel.is-in { opacity: 1; transform: none; filter: none; }
+
+/* Two stacked halos crossfade as the passphrase gains weight. */
+.panel::before,
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 320ms linear;
+}
+.panel::before {
+  box-shadow: 0 0 70px -14px rgba(56, 232, 255, 0.55), 0 0 0 1px rgba(56, 232, 255, 0.14) inset;
+  opacity: calc(0.45 + (1 - var(--charge)) * 0.55);
+}
+.panel::after {
+  box-shadow: 0 0 90px -12px rgba(164, 104, 255, 0.75), 0 0 0 1px rgba(164, 104, 255, 0.22) inset;
+  opacity: var(--charge);
+}
+.panel.is-focused::before { box-shadow: 0 0 96px -12px rgba(56, 232, 255, 0.75), 0 0 0 1px rgba(56, 232, 255, 0.22) inset; }
+
+/* A slow specular sweep across the glass. */
+.panel-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+.panel-sheen::after {
+  content: "";
+  position: absolute;
+  inset: -60% -120%;
+  background: linear-gradient(72deg, transparent 42%, rgba(255, 255, 255, 0.09) 50%, transparent 58%);
+  animation: sheen 9s var(--ease-in-out) infinite;
+}
+@keyframes sheen {
+  0%, 62% { transform: translateX(-45%); }
+  100%    { transform: translateX(45%); }
+}
+
+.panel.is-shattered {
+  opacity: 0;
+  transform: scale(1.09);
+  filter: blur(16px) brightness(1.6);
+  pointer-events: none;
+  transition:
+    opacity 340ms cubic-bezier(0.5, 0, 0.9, 0.4),
+    transform 420ms cubic-bezier(0.5, 0, 0.9, 0.4),
+    filter 340ms linear;
+}
+
+/* The impact when the panel reassembles, and the empty-field rejection. */
+.panel.is-shuddering { animation: shudder 620ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes shudder {
+  0%   { transform: translate3d(0, -14px, 0) scale(1.035); }
+  12%  { transform: translate3d(-9px, 3px, 0) scale(0.994); }
+  26%  { transform: translate3d(8px, -2px, 0); }
+  40%  { transform: translate3d(-6px, 1px, 0); }
+  54%  { transform: translate3d(5px, 0, 0); }
+  68%  { transform: translate3d(-3px, 0, 0); }
+  82%  { transform: translate3d(2px, 0, 0); }
+  100% { transform: none; }
+}
+
+body.is-authenticated .panel { opacity: 0; pointer-events: none; transition: opacity 400ms linear; }
+
+/* ---- Panel head ---- */
+.panel-head { text-align: center; margin-bottom: 1.9rem; }
+.mark { width: 46px; height: 46px; margin: 0 auto 0.9rem; }
+.mark svg { width: 100%; height: 100%; stroke: var(--cyan); opacity: 0.85; animation: spinmark 24s linear infinite; }
+.mark .mark-core { fill: var(--cyan); stroke: none; }
+@keyframes spinmark { to { transform: rotate(360deg); } }
+.mark svg { transform-origin: 50% 50%; }
+
+.panel-head h1 {
+  margin: 0;
+  font-size: 1.24rem;
+  font-weight: 600;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+.panel-sub {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+}
+
+/* ---- Fields ---- */
+.field { position: relative; margin-bottom: 1.5rem; }
+
+.field input {
+  width: 100%;
+  padding: 1.45rem 0.9rem 0.55rem;
+  background: rgba(6, 13, 23, 0.58);
+  border: 1px solid rgba(160, 210, 240, 0.14);
+  border-radius: 13px;
+  outline: none;
+  letter-spacing: 0.02em;
+  transition: border-color 220ms, background 220ms, box-shadow 220ms;
+}
+.field--pass input { padding-right: 3rem; letter-spacing: 0.12em; }
+.field input:hover { border-color: rgba(160, 210, 240, 0.24); }
+.field input:focus {
+  border-color: rgba(56, 232, 255, 0.55);
+  background: rgba(8, 18, 30, 0.72);
+  box-shadow: 0 0 0 4px rgba(56, 232, 255, 0.09);
+}
+.field--pass input:focus {
+  border-color: color-mix(in srgb, var(--cyan), var(--violet) calc(var(--charge, 0) * 100%));
+}
+.field input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ink);
+  -webkit-box-shadow: 0 0 0 40px rgba(10, 20, 30, 0.98) inset;
+}
+
+.field label {
+  position: absolute;
+  left: 0.95rem;
+  top: 0.95rem;
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+  pointer-events: none;
+  transform-origin: left top;
+  transition: transform 200ms var(--ease), color 200ms;
+}
+.field input:focus + label,
+.field input:not(:placeholder-shown) + label {
+  transform: translateY(-0.62rem) scale(0.74);
+  color: var(--cyan);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.field--pass input:focus + label { color: color-mix(in srgb, var(--cyan), var(--violet) calc(var(--charge, 0) * 100%)); }
+
+.reveal {
+  position: absolute;
+  right: 0.45rem;
+  top: 0.62rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color 180ms, background 180ms;
+}
+.reveal svg { width: 19px; height: 19px; stroke: currentColor; }
+.reveal:hover { color: var(--cyan); background: rgba(56, 232, 255, 0.09); }
+.reveal[aria-pressed="true"] { color: var(--cyan); }
+
+.meter {
+  --fill: 0%;
+  position: absolute;
+  left: 0.9rem;
+  right: 0.9rem;
+  bottom: 0.42rem;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.meter span {
+  display: block;
+  width: var(--fill);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cyan), var(--violet));
+  box-shadow: 0 0 12px rgba(164, 104, 255, 0.7);
+  transition: width 200ms var(--ease);
+}
+
+/* Same problem as .status: this appears while the passphrase is being typed,
+   which is exactly when the field behind the glass is at its brightest. */
+.hint {
+  display: inline-flex;
+  align-items: center;
+  margin: -0.85rem 0 1rem;
+  padding: 0.26rem 0.6rem;
+  border: 1px solid rgba(255, 202, 112, 0.42);
+  border-radius: 8px;
+  background: rgba(44, 30, 4, 0.88);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffeccb;
+}
+.hint[hidden] { display: none; }
+
+/* ---- Submit ---- */
+.submit {
+  position: relative;
+  width: 100%;
+  padding: 0.92rem 1rem;
+  border: 1px solid rgba(56, 232, 255, 0.34);
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(56, 232, 255, 0.16), rgba(56, 232, 255, 0.05));
+  font-weight: 600;
+  font-size: 0.86rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 160ms var(--ease), box-shadow 220ms, border-color 220ms, background 220ms;
+}
+.submit:hover {
+  border-color: rgba(56, 232, 255, 0.6);
+  box-shadow: 0 12px 40px -14px rgba(56, 232, 255, 0.85);
+  transform: translateY(-1px);
+}
+.submit:active { transform: translateY(1px) scale(0.995); }
+.submit:disabled { opacity: 0.45; cursor: progress; transform: none; }
+.submit-label { position: relative; z-index: 1; }
+.submit-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: translateX(-100%);
+}
+.submit:hover .submit-glow { animation: swipe 900ms var(--ease); }
+@keyframes swipe { to { transform: translateX(100%); } }
+
+/* The message carries its own opaque plate. Tinted text alone is unreadable
+   here: the glass is translucent over a particle field that turns crimson at
+   exactly the moment an error appears, so the backdrop cannot be relied on.
+   The height is reserved so the panel never resizes -- the particle silhouette
+   tracks the panel's rect, and a reflow mid-failure would resize the shards. */
+.status {
+  margin: 0.9rem 0 0;
+  min-height: 2.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-align: left;
+  text-wrap: balance;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 240ms, transform 240ms var(--ease);
+}
+.status.is-visible { opacity: 1; transform: none; }
+
+.status[data-kind="error"] {
+  color: #ffdde1;
+  background: rgba(44, 6, 12, 0.88);
+  border-color: rgba(255, 106, 124, 0.55);
+  box-shadow: 0 8px 22px -12px rgba(0, 0, 0, 0.95);
+}
+.status[data-kind="warn"] {
+  color: #ffeccb;
+  background: rgba(44, 30, 4, 0.88);
+  border-color: rgba(255, 202, 112, 0.5);
+  box-shadow: 0 8px 22px -12px rgba(0, 0, 0, 0.95);
+}
+
+/* Decorative badge - the text itself is what the live region announces. */
+.status[data-kind="error"]::before,
+.status[data-kind="warn"]::before {
+  content: "!";
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.2em;
+  height: 1.2em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ---- Panel foot ---- */
+.panel-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.3rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.link-state::before {
+  content: "";
+  display: inline-block;
+  width: 6px; height: 6px;
+  margin-right: 0.45rem;
+  border-radius: 50%;
+  background: #4ce6a0;
+  box-shadow: 0 0 8px #4ce6a0;
+  vertical-align: middle;
+}
+.link-state.is-offline::before { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+.creds code {
+  font-family: var(--mono);
+  font-size: 0.95em;
+  color: var(--ink-dim);
+  text-transform: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Dashboard — the login screen becomes this, no page load
+ * ------------------------------------------------------------------ */
+.dash {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: scale(1.06);
+  filter: blur(12px);
+  transition: opacity 620ms var(--ease), transform 760ms var(--ease), filter 620ms var(--ease);
+  background: linear-gradient(180deg, rgba(4, 8, 14, 0.55), rgba(4, 8, 14, 0.78));
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+/* `display: flex` above outranks the UA stylesheet's [hidden] { display: none },
+   which would otherwise leave this full-screen layer in the layout at opacity 0
+   -- invisible, but still eating every click aimed at the login panel. */
+.dash[hidden] { display: none; }
+
+.dash.is-in { opacity: 1; transform: none; filter: none; }
+
+.dash-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.028);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.dash-brand { display: flex; align-items: center; gap: 0.7rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; font-size: 0.8rem; }
+.dash-brand svg { width: 24px; height: 24px; stroke: var(--cyan); }
+.dash-user { display: flex; align-items: center; gap: 1rem; }
+.dash-who { text-align: right; line-height: 1.25; }
+.dash-who strong { display: block; font-size: 0.88rem; }
+.dash-who small { color: var(--ink-faint); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.ghost {
+  padding: 0.5rem 0.95rem;
+  border: 1px solid rgba(160, 210, 240, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.76rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 200ms, background 200ms, color 200ms;
+}
+.ghost:hover { border-color: rgba(56, 232, 255, 0.5); color: var(--cyan); background: rgba(56, 232, 255, 0.07); }
+
+.dash-body { flex: 1; display: grid; grid-template-columns: 190px 1fr; min-height: 0; }
+.dash-nav { display: flex; flex-direction: column; gap: 0.2rem; padding: 1.2rem 0.8rem; border-right: 1px solid rgba(255, 255, 255, 0.06); }
+.dash-nav a {
+  padding: 0.6rem 0.85rem;
+  border-radius: 10px;
+  color: var(--ink-dim);
+  text-decoration: none;
+  font-size: 0.83rem;
+  letter-spacing: 0.03em;
+  transition: background 180ms, color 180ms;
+}
+.dash-nav a:hover { background: rgba(255, 255, 255, 0.05); color: var(--ink); }
+.dash-nav a.is-active { background: rgba(56, 232, 255, 0.11); color: var(--cyan); box-shadow: inset 2px 0 0 var(--cyan); }
+
+.dash-main { padding: 1.5rem 1.8rem; overflow: auto; display: grid; gap: 1.2rem; align-content: start; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+
+.card {
+  padding: 1.15rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.card h2 { margin: 0 0 0.5rem; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+.card .big { margin: 0; font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.card .big em { font-size: 0.55em; font-style: normal; color: var(--ink-dim); margin-left: 0.1em; }
+.card small { color: var(--ink-faint); font-size: 0.72rem; }
+.card--wide { display: grid; gap: 1rem; }
+.spark { width: 100%; height: 96px; }
+
+.tbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.tbl th {
+  text-align: left; padding: 0.5rem 0.6rem; color: var(--ink-faint);
+  font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.tbl td { padding: 0.6rem; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.tbl code { font-family: var(--mono); font-size: 0.9em; color: var(--ink-dim); }
+.pill {
+  display: inline-block; padding: 0.14rem 0.6rem; border-radius: 999px;
+  font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.07); color: var(--ink-faint);
+}
+.pill--ok { background: rgba(76, 230, 160, 0.14); color: #6ff0bb; }
+
+/* ------------------------------------------------------------------ *
+ * HUD
+ * ------------------------------------------------------------------ */
+.hud {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 30;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.35rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(10, 18, 28, 0.42);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0.32;
+  transition: opacity 260ms var(--ease);
+}
+.hud:hover, .hud.is-open, .hud:focus-within { opacity: 1; }
+body.is-authenticating .hud { opacity: 0.08; pointer-events: none; }
+
+.hud-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 0.68rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: background 180ms, color 180ms;
+}
+.hud-btn:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+.hud-value { color: var(--cyan); font-variant-numeric: tabular-nums; }
+.hud select {
+  background: transparent;
+  border: 0;
+  color: var(--cyan);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  outline: none;
+}
+.hud select option { background: #0a121c; color: var(--ink); }
+
+.noscript {
+  position: fixed; inset: 0; z-index: 99;
+  display: grid; place-items: center;
+  background: #05070c; color: var(--ink);
+  letter-spacing: 0.05em;
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion — calm the interface layer down; the field tames itself
+ * ------------------------------------------------------------------ */
+body.reduced-motion .panel-sheen::after,
+body.reduced-motion .mark svg,
+body.reduced-motion #glitch-overlay { animation: none; }
+body.reduced-motion .panel.is-shuddering { animation-duration: 260ms; }
+body.reduced-motion .dash { transition-duration: 260ms; }
+
+@media (max-width: 720px) {
+  .dash-body { grid-template-columns: 1fr; }
+  .dash-nav { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+  .panel { padding: 1.9rem 1.5rem 1.1rem; }
+  .hud { left: 1rem; right: 1rem; justify-content: center; }
+}

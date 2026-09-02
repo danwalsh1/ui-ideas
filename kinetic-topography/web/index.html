@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Kinetic Topography — Access</title>
+<meta name="description" content="A living particle field that reacts to the act of signing in.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%2338e8ff' stroke-width='2'/%3E%3Cellipse cx='16' cy='16' rx='13' ry='5' fill='none' stroke='%23a468ff' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<canvas id="gl" aria-hidden="true"></canvas>
+<div id="fallback-bg" aria-hidden="true"></div>
+<div id="flash" aria-hidden="true"></div>
+<div id="glitch-overlay" aria-hidden="true"></div>
+
+<main id="stage">
+  <section id="panel" class="panel" aria-labelledby="panel-title">
+    <div class="panel-sheen" aria-hidden="true"></div>
+
+    <header class="panel-head">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 44 44" fill="none" stroke-width="1.4">
+          <circle cx="22" cy="22" r="17"/>
+          <ellipse cx="22" cy="22" rx="17" ry="6.5"/>
+          <ellipse cx="22" cy="22" rx="6.5" ry="17"/>
+          <circle cx="22" cy="22" r="3.2" class="mark-core"/>
+        </svg>
+      </div>
+      <h1 id="panel-title">Kinetic Topography</h1>
+      <p class="panel-sub">Authenticate to enter the ecosystem</p>
+    </header>
+
+    <form id="login-form" novalidate autocomplete="on">
+      <div class="field">
+        <input id="username" name="username" type="text" placeholder=" "
+               autocomplete="username" spellcheck="false" autocapitalize="none" required>
+        <label for="username">Operator ID</label>
+        <span class="field-line" aria-hidden="true"></span>
+      </div>
+
+      <div class="field field--pass">
+        <input id="password" name="password" type="password" placeholder=" "
+               autocomplete="current-password" required>
+        <label for="password">Passphrase</label>
+        <span class="field-line" aria-hidden="true"></span>
+        <button id="reveal" type="button" class="reveal" aria-pressed="false" aria-label="Show password">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" aria-hidden="true">
+            <path d="M2.2 12S6 5.5 12 5.5 21.8 12 21.8 12 18 18.5 12 18.5 2.2 12 2.2 12Z"/>
+            <circle cx="12" cy="12" r="3.1"/>
+          </svg>
+        </button>
+        <div id="meter" class="meter" aria-hidden="true"><span></span></div>
+      </div>
+
+      <p id="caps" class="hint" hidden>Caps Lock is on.</p>
+
+      <button id="submit" class="submit" type="submit">
+        <span class="submit-label">Authenticate</span>
+        <span class="submit-glow" aria-hidden="true"></span>
+      </button>
+
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <footer class="panel-foot">
+      <span id="link-state" class="link-state">checking link…</span>
+      <span class="creds"><code>operator</code> / <code>topography</code></span>
+    </footer>
+  </section>
+</main>
+
+<section id="dashboard" class="dash" hidden aria-label="Console">
+  <header class="dash-top">
+    <div class="dash-brand">
+      <svg viewBox="0 0 44 44" fill="none" stroke-width="1.6" aria-hidden="true">
+        <circle cx="22" cy="22" r="17"/><ellipse cx="22" cy="22" rx="17" ry="6.5"/>
+      </svg>
+      <span>Topography Console</span>
+    </div>
+    <div class="dash-user">
+      <div class="dash-who">
+        <strong id="dash-name">Operator</strong>
+        <small id="dash-role">Systems</small>
+      </div>
+      <button id="signout" class="ghost" type="button">Sign out</button>
+    </div>
+  </header>
+
+  <div class="dash-body">
+    <nav class="dash-nav" aria-label="Sections">
+      <a class="is-active" href="#">Overview</a>
+      <a href="#">Streams</a>
+      <a href="#">Lattice</a>
+      <a href="#">Access</a>
+      <a href="#">Settings</a>
+    </nav>
+
+    <div class="dash-main">
+      <div class="cards">
+        <article class="card"><h2>Field density</h2><p class="big" id="dash-density">—</p><small>active particles</small></article>
+        <article class="card"><h2>Coherence</h2><p class="big">98.4<em>%</em></p><small>ring alignment</small></article>
+        <article class="card"><h2>Latency</h2><p class="big">1.9<em>s</em></p><small>verification window</small></article>
+        <article class="card"><h2>Nodes</h2><p class="big">12</p><small>online</small></article>
+      </div>
+
+      <section class="card card--wide">
+        <h2>Field telemetry</h2>
+        <svg class="spark" viewBox="0 0 420 96" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#38e8ff" stop-opacity=".55"/>
+              <stop offset="100%" stop-color="#38e8ff" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M0 74 L35 62 L70 68 L105 44 L140 52 L175 28 L210 38 L245 20 L280 34 L315 16 L350 26 L385 12 L420 22 V96 H0 Z" fill="url(#sg)"/>
+          <path d="M0 74 L35 62 L70 68 L105 44 L140 52 L175 28 L210 38 L245 20 L280 34 L315 16 L350 26 L385 12 L420 22"
+                fill="none" stroke="#7df2ff" stroke-width="1.6"/>
+        </svg>
+        <table class="tbl">
+          <thead><tr><th>Session</th><th>Issued</th><th>Source</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td><code id="dash-token">—</code></td><td>just now</td><td id="dash-source">—</td><td><span class="pill pill--ok">active</span></td></tr>
+            <tr><td><code>b7Kq…4mZ1</code></td><td>3h ago</td><td>kt-auth service</td><td><span class="pill">expired</span></td></tr>
+            <tr><td><code>xR2p…9dTa</code></td><td>yesterday</td><td>kt-auth service</td><td><span class="pill">expired</span></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+</section>
+
+<div id="hud" class="hud">
+  <button id="toggle-sound" class="hud-btn" type="button" aria-pressed="false">
+    Sound <span class="hud-value">off</span>
+  </button>
+  <button id="toggle-motion" class="hud-btn" type="button" aria-pressed="true">
+    Motion <span class="hud-value">full</span>
+  </button>
+  <label class="hud-btn" for="quality">
+    Density
+    <select id="quality">
+      <option value="low">65k</option>
+      <option value="medium">147k</option>
+      <option value="high">262k</option>
+    </select>
+  </label>
+</div>
+
+<noscript>
+  <div class="noscript">This experience needs JavaScript and WebGL2.</div>
+</noscript>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
