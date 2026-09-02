@@ -14,7 +14,7 @@
   /* ---- Ink ------------------------------------------------------ */
   --ink: #161D26;
   --ink-soft: #5A6675;
-  --ink-faint: #8A94A1;
+  --ink-faint: #64707F;   /* AA on --surface and the function strip */
   --rule: #E2E6EC;
 
   /* ---- Brand: the one value a customer swaps -------------------- */
@@ -48,7 +48,7 @@
   /* ---- Geometry --------------------------------------------------
      The whole set is sized from the terminal, so the composition holds
      together at any viewport without per-element breakpoints. */
-  --tw: clamp(300px, 47vw, 660px);
+  --tw: clamp(320px, 56vw, 820px);
   --th: calc(var(--tw) * 0.70);
 
   /* ---- Motion (unused in step 1 - the set is static) ------------- */

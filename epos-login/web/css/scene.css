@@ -345,7 +345,12 @@ body {
    is not obviously broken on a phone - the terminal takes the frame and the
    counter rises to meet it rather than stranding a wall of empty space. */
 @media (max-width: 760px) {
-  :root { --tw: min(88vw, 430px); }
+  /* Portrait. A landscape screen at this width is too short to hold a
+     vertical form, and plenty of real POS units are portrait tablets. */
+  :root {
+    --tw: min(92vw, 420px);
+    --th: calc(var(--tw) * 1.16);
+  }
   .printer, .reader { display: none; }
   .room { inset: 0 0 58% 0; }
   .counter { top: 42%; height: 150vh; }

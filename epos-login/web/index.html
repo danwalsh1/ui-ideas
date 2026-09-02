@@ -4,16 +4,34 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Counterpoint — Till</title>
-<meta name="description" content="Point of sale terminal sign-in.">
+<title>Counterpoint — Sign in to till</title>
+<meta name="description" content="Sign in to your Counterpoint point of sale terminal.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M8.5 3h15A2.5 2.5 0 0 1 26 5.5v20L23.5 28 21 25.5 18.5 28 16 25.5 13.5 28 11 25.5 8.5 28 6 25.5v-20A2.5 2.5 0 0 1 8.5 3Z' fill='%234356E0'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/scene.css">
 <link rel="stylesheet" href="css/terminal.css">
+<link rel="stylesheet" href="css/pos.css">
 </head>
 <body>
 
-<!-- The set. Step 1 is static: no script, no motion. -->
+<!-- BRAND SLOT ------------------------------------------------------------
+     Replace this symbol and the wordmark text below. Nothing else in the
+     project knows the brand's name. Painted with currentColor so it picks
+     up the accent wherever it is placed.
+------------------------------------------------------------------------ -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <symbol id="cp-mark" viewBox="0 0 32 32">
+    <mask id="cp-mark-cut">
+      <path d="M8.5 3h15A2.5 2.5 0 0 1 26 5.5v20L23.5 28 21 25.5 18.5 28 16 25.5
+               13.5 28 11 25.5 8.5 28 6 25.5v-20A2.5 2.5 0 0 1 8.5 3Z" fill="#fff"/>
+      <rect x="9.8" y="9" width="12.4" height="2.2" rx="1.1" fill="#000"/>
+      <rect x="9.8" y="14" width="8" height="2.2" rx="1.1" fill="#000"/>
+    </mask>
+    <rect width="32" height="32" fill="currentColor" mask="url(#cp-mark-cut)"/>
+  </symbol>
+</svg>
+
+<!-- The set -->
 <div class="room" aria-hidden="true"></div>
 <div class="counter" aria-hidden="true"></div>
 
@@ -40,27 +58,108 @@
       </div>
     </div>
 
-    <!-- The terminal. The sign-in form lands inside .terminal__screen at step 2. -->
+    <!-- The terminal -->
     <div class="terminal">
       <span class="cast" aria-hidden="true"></span>
       <div class="terminal__body">
         <div class="terminal__screen">
 
-          <div class="attract">
-            <!-- BRAND SLOT: replace the mark and the wordmark, nothing else. -->
-            <div class="brand">
-              <svg class="brand__mark" viewBox="0 0 32 32" role="img" aria-label="Counterpoint">
-                <mask id="cp-receipt">
-                  <path d="M8.5 3h15A2.5 2.5 0 0 1 26 5.5v20L23.5 28 21 25.5 18.5 28 16 25.5
-                           13.5 28 11 25.5 8.5 28 6 25.5v-20A2.5 2.5 0 0 1 8.5 3Z" fill="#fff"/>
-                  <rect x="9.8" y="9" width="12.4" height="2.2" rx="1.1" fill="#000"/>
-                  <rect x="9.8" y="14" width="8" height="2.2" rx="1.1" fill="#000"/>
-                </mask>
-                <rect width="32" height="32" fill="currentColor" mask="url(#cp-receipt)"/>
-              </svg>
-              <span class="brand__word">Counterpoint</span>
+          <div class="pos">
+
+            <header class="pos__header">
+              <div class="brand">
+                <svg class="brand__mark" role="img" aria-label="Counterpoint"><use href="#cp-mark"/></svg>
+                <span class="brand__word">Counterpoint</span>
+              </div>
+              <div class="pos__status">
+                <span class="pos__till">Till 04</span>
+                <span class="pos__clock">09:41</span>
+                <span class="pos__net">Online</span>
+              </div>
+            </header>
+
+            <div class="pos__body">
+
+              <!-- The task comes first in the DOM. `order` puts the ambient
+                   sale back on the left visually; it holds nothing focusable,
+                   so tab order is untouched. -->
+              <section class="signin" aria-labelledby="signin-title">
+                <h1 class="signin__title" id="signin-title">Sign in to till</h1>
+                <p class="signin__sub">Use your Counterpoint account.</p>
+
+                <form id="signin-form" novalidate>
+                  <div class="field">
+                    <label for="email">Email</label>
+                    <div class="field__wrap">
+                      <input id="email" name="email" type="email" inputmode="email"
+                             autocomplete="username" spellcheck="false"
+                             autocapitalize="none" placeholder="you@example.com" required>
+                    </div>
+                  </div>
+
+                  <div class="field field--pass">
+                    <label for="password">Password</label>
+                    <div class="field__wrap">
+                      <input id="password" name="password" type="password"
+                             autocomplete="current-password" required>
+                      <button type="button" class="reveal" id="reveal"
+                              aria-pressed="false" aria-label="Show password" aria-controls="password">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M2.3 12S6 5.8 12 5.8 21.7 12 21.7 12 18 18.2 12 18.2 2.3 12 2.3 12Z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <p class="caps" id="caps" hidden>Caps Lock is on</p>
+
+                  <!-- Decoration built from the fields above. It assembles in
+                       step 5 and is never itself an input. -->
+                  <div class="badge" aria-hidden="true">
+                    <div class="badge__top">
+                      <span class="badge__label">Staff badge</span>
+                      <span class="badge__chip"></span>
+                    </div>
+                    <div class="badge__id">—</div>
+                    <div class="badge__code"></div>
+                  </div>
+
+                  <div class="signin__row">
+                    <a class="link" href="#recall">Forgot password?</a>
+                  </div>
+
+                  <button type="submit" class="submit">Sign in</button>
+                </form>
+              </section>
+
+              <section class="sale" aria-labelledby="sale-title">
+                <h2 class="sale__head" id="sale-title">Current sale</h2>
+                <ol class="sale__list">
+                  <li><span class="sale__name">Oat milk 1L</span><span class="sale__price">£1.85</span></li>
+                  <li><span class="sale__name">Sourdough loaf</span><span class="sale__price">£3.20</span></li>
+                  <li><span class="sale__name">Coffee beans 250g</span><span class="sale__price">£6.50</span></li>
+                  <li><span class="sale__name">Bananas <span class="sale__qty">&times;5</span></span><span class="sale__price">£1.12</span></li>
+                </ol>
+                <div class="sale__foot">
+                  <div class="sale__count">4 items</div>
+                  <div class="sale__total"><span>Total</span><strong>£12.67</strong></div>
+                </div>
+              </section>
+
             </div>
-            <p class="attract__sub">Point of Sale · Terminal 04</p>
+
+            <!-- Chrome, not controls. These do nothing yet, so they are inert
+                 text hidden from assistive tech rather than buttons that go
+                 nowhere. They become real controls in step 5. -->
+            <div class="fkeys" aria-hidden="true">
+              <span><b>F1</b> Recall</span>
+              <span><b>F2</b> Support</span>
+              <span><b>F3</b> Language</span>
+              <span class="fkeys__spacer"></span>
+              <span>Settings</span>
+            </div>
+
           </div>
 
         </div>
@@ -94,5 +193,6 @@
 <div class="vignette" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
 
+<script type="module" src="js/ui.js"></script>
 </body>
 </html>

@@ -105,51 +105,6 @@
       hsl(38 70% 100% / 0.30) 100%);
 }
 
-/* ---- Attract screen (step 1 placeholder for the sign-in UI) ------ */
-.attract {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: clamp(10px, 1.4vw, 18px);
-  background:
-    radial-gradient(74% 60% at 50% 42%, #FDFDFE 0%, #F4F6FA 52%, #E9EDF4 100%);
-}
-
-.attract__sub {
-  margin: 0;
-  font-size: clamp(9px, 0.82vw, 12px);
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-/* ---- Brand lockup ------------------------------------------------ *
-   The customer replaces the mark and the wordmark; nothing else in the
-   stylesheet knows the brand's name. */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: clamp(8px, 0.9vw, 13px);
-  color: var(--brand);
-  opacity: 0.9;
-}
-
-.brand__mark {
-  width: clamp(26px, 3vw, 40px);
-  height: auto;
-  flex: none;
-}
-
-.brand__word {
-  font-size: clamp(15px, 1.8vw, 24px);
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
 /* ---- Wedge and foot ---------------------------------------------- *
    A chrome stalk on an oval foot is the silhouette of a desktop monitor.
    A countertop POS is one moulded charcoal unit: the screen sits directly
