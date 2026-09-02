@@ -189,7 +189,7 @@
   margin-top: 0.3em;
 }
 
-.sale__total span {
+.sale__total > span {
   font-size: 0.78em;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -198,12 +198,51 @@
 }
 
 /* The loudest number on the screen, because it is the loudest number in
-   a shop. Tabular so the digits never jitter when it changes in step 3. */
+   a shop. Tabular so the digits never jitter as it climbs. */
 .sale__total strong {
   font-size: 1.85em;
   font-weight: 650;
   letter-spacing: -0.015em;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- Odometer ------------------------------------------------------ *
+   Digits roll rather than crossfade. Every cell is exactly 1em tall and
+   the row is bottom-aligned, so the pound sign and the point share a
+   baseline with the rolling digits. */
+.od-row { display: inline-flex; align-items: flex-end; }
+.od-cell { display: inline-block; height: 1em; line-height: 1; overflow: hidden; }
+.od-strip {
+  display: block;
+  transition: transform 620ms cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+.od-strip span { display: block; height: 1em; line-height: 1; }
+
+/* ---- Sale motion --------------------------------------------------- */
+.sale__list li.is-landing { animation: land 400ms var(--ease); }
+@keyframes land {
+  from { opacity: 0; transform: translateY(-7px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.sale__list.is-clearing { animation: wipe 400ms var(--ease-in-out) forwards; }
+@keyframes wipe {
+  to { opacity: 0; transform: translateY(-12px); }
+}
+
+/* The total acknowledges the sale closing, once, in the approved colour. */
+.sale__total.is-settled strong { animation: settled 900ms var(--ease); }
+@keyframes settled {
+  0%   { color: var(--ink); }
+  22%  { color: var(--approved); }
+  100% { color: var(--ink); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .od-strip { transition: none; }
+  .sale__list li.is-landing,
+  .sale__list.is-clearing,
+  .sale__total.is-settled strong { animation: none; }
 }
 
 /* ------------------------------------------------------------------ *

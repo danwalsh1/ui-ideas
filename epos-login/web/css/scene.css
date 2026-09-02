@@ -27,7 +27,7 @@ body {
  * ------------------------------------------------------------------ */
 .room {
   position: fixed;
-  inset: 0 0 42% 0;
+  inset: 0 0 48% 0;
   background:
     radial-gradient(120% 150% at 16% -34%, #FFFFFF 0%, #FBF9F6 30%, #F1EEE7 62%, #E6E1D6 100%);
 }
@@ -48,7 +48,7 @@ body {
 .counter {
   position: fixed;
   left: 50%;
-  top: 58%;
+  top: 52%;
   width: 300vw;
   height: 120vh;
   margin-left: -150vw;
@@ -97,7 +97,7 @@ body {
   align-items: flex-end;
   justify-content: center;
   gap: clamp(16px, 3vw, 54px);
-  padding-bottom: clamp(40px, 8.5vh, 92px);
+  padding-bottom: clamp(150px, 24vh, 235px);   /* clear of the belt */
 }
 
 /* ------------------------------------------------------------------ *
@@ -327,6 +327,7 @@ body {
  * ------------------------------------------------------------------ */
 .grain {
   position: fixed;
+  z-index: 60;
   inset: 0;
   pointer-events: none;
   opacity: 0.05;
@@ -336,6 +337,7 @@ body {
 
 .vignette {
   position: fixed;
+  z-index: 8;
   inset: 0;
   pointer-events: none;
   background: radial-gradient(78% 68% at 46% 40%, transparent 42%, hsl(28 26% 40% / 0.20) 100%);

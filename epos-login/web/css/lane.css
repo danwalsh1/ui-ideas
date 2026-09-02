@@ -1,0 +1,235 @@
+/* The lane: belt, goods, scanner, and the chip that flies up into the sale.
+   Everything here sits in FRONT of the terminal, nearer the viewer, so it
+   paints above the set. The belt runs at a constant depth across the scene,
+   which is why items keep a constant size as they travel - no scaling. */
+
+.lane-belt {
+  --item-unit: clamp(62px, 6.2vw, 94px);
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(120px, 21vh, 200px);
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Rubber. Dark, slightly green, with a broad sheen from the key light. */
+.belt__surface {
+  position: absolute;
+  inset: 14% 0 0 0;
+  background:
+    linear-gradient(180deg, #2E3338 0%, #383E44 26%, #454C53 62%, #343A40 100%),
+    #383E44;
+}
+
+/* Lateral ribs. Scrolled by JS so they always match the item speed. */
+.belt__ribs {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(90deg,
+    hsl(210 12% 78% / 0.10) 0 1px,
+    transparent 1px 3px,
+    hsl(210 12% 4% / 0.22) 3px 4px,
+    transparent 4px 26px);
+}
+
+/* A seam comes round every twelve seconds. Perfect loops read as fake. */
+.belt__seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: linear-gradient(90deg,
+    transparent, hsl(210 14% 88% / 0.16) 35% 65%, transparent);
+  will-change: transform;
+}
+
+/* Guide rails either side of the rubber. */
+.belt__rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--alu);
+}
+.belt__rail--back {
+  top: 14%;
+  height: 7px;
+  translate: 0 -100%;
+  box-shadow: 0 -3px 8px -3px hsl(var(--shadow-hue) / 0.4);
+}
+.belt__rail--front {
+  bottom: 0;
+  height: 9px;
+  box-shadow: 0 -2px 6px hsl(210 20% 0% / 0.35);
+}
+
+/* Contact shade where the belt meets the counter behind it. */
+.lane-belt::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 14%;
+  background: linear-gradient(to bottom, hsl(28 26% 38% / 0.34), transparent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Scanner - a flatbed window set into the belt
+ * ------------------------------------------------------------------ */
+.scanner {
+  --scan-w: clamp(64px, 6.8vw, 100px);
+  position: absolute;
+  left: var(--scan-x, 42%);
+  top: 14%;
+  bottom: 9px;
+  width: var(--scan-w);
+  margin-left: calc(var(--scan-w) / -2);
+}
+
+.scanner__glass {
+  position: absolute;
+  z-index: 2;
+  inset: 30% 0 26% 0;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #22282F, #2C333B 55%, #1A1F25);
+  box-shadow:
+    inset 0 0 0 1px hsl(210 20% 100% / 0.10),
+    inset 0 2px 5px hsl(210 20% 0% / 0.75),
+    0 0 0 2px hsl(210 14% 66% / 0.45);
+}
+
+/* The faint red line a scanner window always shows at rest. */
+.scanner__glass::before {
+  content: "";
+  position: absolute;
+  inset: 46% 14% auto 14%;
+  height: 2px;
+  border-radius: 2px;
+  background: hsl(0 80% 52% / 0.42);
+}
+
+/* The window glows while a barcode is under it. */
+.scanner__glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(60% 80% at 50% 50%, hsl(0 85% 55% / 0.55), transparent 72%);
+  transition: opacity 90ms linear;
+}
+.scanner.is-reading .scanner__glass::after { opacity: 1; }
+
+/* A fan of red light that sweeps up over whatever is passing. */
+.scanner__beam {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 30%;
+  width: clamp(70px, 8vw, 115px);
+  height: clamp(70px, 9vh, 120px);
+  translate: -50% 0;
+  opacity: 0;
+  background: linear-gradient(to top,
+    hsl(0 90% 58% / 0.55), hsl(0 90% 60% / 0.16) 55%, transparent 100%);
+  clip-path: polygon(50% 100%, 100% 0, 0 0);
+  mix-blend-mode: screen;
+}
+.scanner.is-reading .scanner__beam { animation: beam 260ms ease-out; }
+
+@keyframes beam {
+  0%   { opacity: 0; scale: 0.7 0.4; }
+  22%  { opacity: 1; scale: 1 1; }
+  100% { opacity: 0; scale: 1.06 1.1; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Goods on the belt
+ * ------------------------------------------------------------------ */
+.belt__items {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+}
+
+.item {
+  position: absolute;
+  left: 0;
+  bottom: 16%;
+  width: calc(var(--item-unit) * var(--k, 1));
+  will-change: transform;
+}
+
+.item svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 5px 5px hsl(var(--shadow-hue) / 0.34));
+}
+
+/* The hop on the beep. Lives on the inner element so it never fights the
+   horizontal travel transform on .item. */
+.item.is-scanned svg { animation: hop 340ms cubic-bezier(0.3, 1.4, 0.5, 1); }
+
+@keyframes hop {
+  0%   { transform: translateY(0) scale(1); }
+  30%  { transform: translateY(-13%) scale(1.04, 0.97); }
+  60%  { transform: translateY(0) scale(0.98, 1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Fading out as they reach the bagging area. */
+.item.is-bagging { transition: opacity 500ms linear; opacity: 0; }
+
+/* ------------------------------------------------------------------ *
+ * Bagging area
+ * ------------------------------------------------------------------ */
+.bag {
+  position: absolute;
+  z-index: 6;
+  right: clamp(24px, 6vw, 120px);
+  bottom: 12%;
+  width: clamp(66px, 7.5vw, 104px);
+  filter: drop-shadow(0 6px 7px hsl(var(--shadow-hue) / 0.4));
+}
+.bag svg { display: block; width: 100%; height: auto; }
+
+/* ------------------------------------------------------------------ *
+ * The flyer: a chip that carries a scanned line up into the sale pane.
+ * It lives at body level because the terminal screen clips its contents,
+ * so it flies OVER the bezel rather than through it, and hands off to a
+ * real row in the list the moment it lands.
+ * ------------------------------------------------------------------ */
+.flyer {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0.3em 0.6em;
+  border-radius: 0.4em;
+  background: #FFFFFF;
+  border: 1px solid var(--rule);
+  box-shadow: 0 6px 16px -6px hsl(var(--shadow-hue) / 0.5);
+  font-family: var(--font);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.flyer b { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: the belt stops entirely. The sale still fills, just
+ * without anything travelling - see lane.js.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .lane-belt { display: none; }
+}
+
+/* Narrow viewports go portrait and give the frame to the terminal; the
+   lane returns properly in the responsive pass at step 12. */
+@media (max-width: 760px) {
+  .lane-belt { display: none; }
+}

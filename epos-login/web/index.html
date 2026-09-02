@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="css/scene.css">
 <link rel="stylesheet" href="css/terminal.css">
 <link rel="stylesheet" href="css/pos.css">
+<link rel="stylesheet" href="css/lane.css">
 </head>
 <body>
 
@@ -28,6 +29,61 @@
       <rect x="9.8" y="14" width="8" height="2.2" rx="1.1" fill="#000"/>
     </mask>
     <rect width="32" height="32" fill="currentColor" mask="url(#cp-mark-cut)"/>
+  </symbol>
+
+  <!-- GOODS ---------------------------------------------------------------
+       Flat vector sprites on a shared 64x84 box, all standing on y=82 so
+       they share a baseline on the belt. Consistent shape language: solid
+       fills, one shadow tone per object, no outlines.
+  --------------------------------------------------------------------- -->
+  <symbol id="it-milk" viewBox="0 0 64 84">
+    <path d="M18 30h28v52H18z" fill="#EDF2F7"/>
+    <path d="M33 30h13v52H33z" fill="#D5DFEA"/>
+    <path d="M18 30 32 13l14 17z" fill="#F8FAFC"/>
+    <path d="M32 13 46 30H33z" fill="#DCE5EE"/>
+    <path d="M18 53h28v12H18z" fill="#5B93C7"/>
+    <path d="M33 53h13v12H33z" fill="#4A7FB0"/>
+    <rect x="29" y="9" width="6" height="6" rx="1.5" fill="#C5D2DF"/>
+  </symbol>
+
+  <symbol id="it-bread" viewBox="0 0 64 84">
+    <path d="M5 66c0-17 12-29 27-29s27 12 27 29c0 10-9 16-27 16S5 76 5 66z" fill="#C18C45"/>
+    <path d="M8 61c0-15 10-26 24-26s24 11 24 26c0 7-7 11-24 11S8 68 8 61z" fill="#E3B673"/>
+    <path d="M17 55c5-4 10-6 15-6" stroke="#A9752F" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M25 62c6-5 13-7 19-7" stroke="#A9752F" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="it-coffee" viewBox="0 0 64 84">
+    <path d="M17 24h30v58H17z" fill="#6C4A3B"/>
+    <path d="M32 24h15v58H32z" fill="#563A2E"/>
+    <path d="M15 24h34l-5-9H20z" fill="#432C22"/>
+    <rect x="21" y="40" width="22" height="20" rx="2.5" fill="#EFE3CE"/>
+    <circle cx="32" cy="47" r="4.5" fill="#6C4A3B"/>
+    <rect x="25" y="54" width="14" height="2.5" rx="1.25" fill="#B99F7C"/>
+  </symbol>
+
+  <symbol id="it-banana" viewBox="0 0 64 84">
+    <path d="M7 68c-2-15 9-28 26-30 8-1 14 2 14 7 0 5-7 7-13 9-11 3-17 10-18 17-1 5-8 3-9-3z" fill="#DCAE28"/>
+    <path d="M11 75c-2-15 9-28 26-30 8-1 14 2 14 7 0 5-7 7-13 9-11 3-17 10-18 17-1 5-8 3-9-3z" fill="#F5CC44"/>
+    <path d="M47 44c3-1 6 0 7 3" stroke="#6F5017" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="it-book" viewBox="0 0 64 84">
+    <path d="M20 20h26a2 2 0 0 1 2 2v58a2 2 0 0 1-2 2H20z" fill="#B9524A"/>
+    <path d="M17 20h5v62h-5a2 2 0 0 1-2-2V22a2 2 0 0 1 2-2z" fill="#8C3C36"/>
+    <rect x="44" y="23" width="4" height="56" fill="#F3EDE1"/>
+    <rect x="27" y="36" width="15" height="3" rx="1.5" fill="#EBD4B6"/>
+    <rect x="27" y="44" width="10" height="3" rx="1.5" fill="#E3C8A6"/>
+  </symbol>
+
+  <symbol id="it-plant" viewBox="0 0 64 84">
+    <path d="M31 53c-3-13-11-19-19-19 0 13 8 19 19 19z" fill="#4E9A6A"/>
+    <path d="M33 53c2-15 11-21 19-21 0 14-8 21-19 21z" fill="#3D7D55"/>
+    <path d="M32 53c-1-11 2-19 2-19s4 9 2 19z" fill="#61B380"/>
+    <path d="M20 58h24l-3 24H23z" fill="#C0754C"/>
+    <path d="M32 58h12l-3 24h-9z" fill="#A9633E"/>
+    <rect x="17" y="52" width="30" height="8" rx="2.5" fill="#D98C63"/>
+    <rect x="32" y="52" width="15" height="8" fill="#C57A54"/>
   </symbol>
 </svg>
 
@@ -190,9 +246,42 @@
   </div>
 </div>
 
+
+<!-- THE LANE --------------------------------------------------------------
+     Phase 0. Goods travel the belt, cross the scanner, and their lines fly
+     up into the sale. Sits in front of the terminal, nearest the viewer.
+------------------------------------------------------------------------ -->
+<div class="lane-belt" aria-hidden="true">
+  <div class="belt__rail belt__rail--back"></div>
+
+  <div class="belt__surface">
+    <div class="belt__ribs"></div>
+    <div class="belt__seam"></div>
+  </div>
+
+  <div class="scanner">
+    <div class="scanner__glass"></div>
+    <div class="scanner__beam"></div>
+  </div>
+
+  <div class="belt__items"></div>
+
+  <div class="bag">
+    <svg viewBox="0 0 80 96">
+      <path d="M11 32h58v56a5 5 0 0 1-5 5H16a5 5 0 0 1-5-5z" fill="#DCCAAB"/>
+      <path d="M40 32h29v61H40z" fill="#C8B391"/>
+      <path d="M11 32 20 17h40l9 15z" fill="#E9DABF"/>
+      <path d="M40 17h20l9 15H40z" fill="#D6C3A2"/>
+      <path d="M27 33c0-8 6-13 13-13s13 5 13 13" fill="none" stroke="#B5A183" stroke-width="3"/>
+    </svg>
+  </div>
+
+  <div class="belt__rail belt__rail--front"></div>
+</div>
+
 <div class="vignette" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
 
-<script type="module" src="js/ui.js"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -48,7 +48,7 @@
   /* ---- Geometry --------------------------------------------------
      The whole set is sized from the terminal, so the composition holds
      together at any viewport without per-element breakpoints. */
-  --tw: clamp(320px, 56vw, 820px);
+  --tw: clamp(320px, 48vw, 700px);   /* leaves the foreground to the belt */
   --th: calc(var(--tw) * 0.70);
 
   /* ---- Motion (unused in step 1 - the set is static) ------------- */
