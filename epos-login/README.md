@@ -73,7 +73,7 @@ reload. No build step, no dependencies, vanilla ES modules.
 | 6 | Auth service | done |
 | 7 | Authorising — **Phase 2 complete** | done |
 | 8 | Approved — **Phase 3a complete** | done |
-| 9 | Declined — Phase 3b, plus the sign-on receipt | next |
-| 10 | Supervisor lockout — Phase 3c | |
+| 9 | Declined — **Phase 3b complete**, plus the sign-on receipt | done |
+| 10 | Supervisor lockout — Phase 3c | next |
 | 11 | Sound | |
 | 12 | Polish, responsive, contrast audit | |

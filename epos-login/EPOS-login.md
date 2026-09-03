@@ -374,8 +374,14 @@ The failure is the best part of this concept, and it belongs to the printer.
 **Receipts accumulate.** A second failure prints a second receipt that pushes
 the first further out and slightly askew. By the third, a small drift of curled
 paper hangs off the printer. The attempt count is *physical* — you can see how
-many tries you have left without reading a number. Starting to type tears the
-stack off, and it drops out of frame.
+many tries you have left without reading a number.
+
+The drift is torn off when the run of failures ends, not on any keystroke: a
+decline clears the password field, so the retry always has to be typed, and
+tearing on every key would mean the stack could never reach two. Changing the
+email tears it off - a different name on the badge is a fresh start - and so
+does signing in or signing out. Retyping the password does not: that is the
+same run continuing, which is exactly when the drift should be growing.
 
 The printed receipt is decoration. The real message goes to a live region for
 screen readers at the moment of failure, and it is also readable as plain text

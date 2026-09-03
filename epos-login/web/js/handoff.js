@@ -14,7 +14,14 @@ const EASE = 'cubic-bezier(0.36, 0.7, 0.28, 1)';
 const centre = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
 
 function play(el, frames, duration, easing = EASE) {
-  return el.animate(frames, { duration, easing, fill: 'forwards' }).finished;
+  const anim = el.animate(frames, { duration, easing, fill: 'forwards' });
+  // Never let the sequence wait on a frame that may not come. A backgrounded
+  // tab throttles or suspends these, and the sign-in must not hang because
+  // nobody is looking at it: past the deadline, snap to the end and move on.
+  return Promise.race([
+    anim.finished,
+    new Promise((resolve) => setTimeout(resolve, duration + 400)),
+  ]).then(() => { try { anim.finish(); } catch { /* already done */ } });
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -47,8 +54,10 @@ function buildFlyer(badgeEl) {
  */
 export async function runHandoff({ badgeEl, scannerEl, glassEl, readerEl, slotEl, reduced }) {
   // Reduced motion skips the flight entirely - the takeover screen and the
-  // reader still change state, so nothing is lost but the travel.
-  if (reduced || !badgeEl || !glassEl || !slotEl) return;
+  // reader still change state, so nothing is lost but the travel. A hidden
+  // tab skips it for the same reason: there is no one to show it to, and
+  // playing it out would only delay the outcome.
+  if (reduced || document.hidden || !badgeEl || !glassEl || !slotEl) return;
 
   const from = badgeEl.getBoundingClientRect();
   if (!from.width) return;

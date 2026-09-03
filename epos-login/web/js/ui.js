@@ -13,6 +13,7 @@ import { Badge } from './badge.js';
 import { login, probe, state as authState } from './auth.js';
 import { runHandoff } from './handoff.js';
 import { runApproved, runSignOut } from './approved.js';
+import { Printer, declinedReceipt, lockedReceipt, signOnReceipt } from './printer.js';
 
 const $ = (sel) => document.querySelector(sel);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -37,6 +38,7 @@ export function initForm({ stage, lane }) {
   const status = $('#signin-status');
   const net = $('#pos-net');
   const badge = new Badge($('.badge'));
+  const printer = new Printer();
 
   const idleStatus = status.textContent;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -78,9 +80,17 @@ export function initForm({ stage, lane }) {
   form.addEventListener('focusout', () => setTimeout(sync, 0));
 
   /* ---- Badge assembly ---------------------------------------------- */
+  // Changing the account tears the drift off - a different name on the badge
+  // is a fresh start. Retyping the password is not: that is the same run of
+  // failures continuing, and the drift growing is the whole point of it. If
+  // any keystroke tore the stack off it could never reach two, because a
+  // decline clears the password and the retry has to be typed.
+  const clearPaper = () => { if (printer.hasPaper) printer.tearOff(); };
+
   email.addEventListener('input', () => {
     badge.setAccount(email.value);
     if (status.dataset.kind) setStatus('');
+    clearPaper();
   });
   password.addEventListener('input', () => {
     badge.setCharged(password.value.length > 0);
@@ -202,12 +212,17 @@ export function initForm({ stage, lane }) {
       stage.set('approved');
       setStatus(`Signed in as ${result.user.name}. ${result.user.role}.`, 'ok');
       await runApproved({ user: result.user, lane, reduced });
+      // The drift of failures drops away and a single SIGNED ON takes its place.
+      printer.tearOff();
+      printer.print(signOnReceipt(result.user), { reduced });
       // Signed on. Nothing to submit again until they sign out.
       return;
     }
 
     if (result.code === 'locked') {
       stage.set('locked');
+      shudder();
+      printer.print(lockedReceipt({ account: address, seconds: result.retryAfter || 30 }), { reduced });
       lockdown(result.retryAfter);
       return;
     }
@@ -217,11 +232,15 @@ export function initForm({ stage, lane }) {
       ? ` Attempt ${result.attempt} of ${result.of}.`
       : '';
     setStatus(result.message + count, 'error');
+    shudder();
+    await printer.print(
+      declinedReceipt({ account: address, attempt: result.attempt, of: result.of }),
+      { reduced },
+    );
 
-    // Step 9 replaces this beat with the printed receipt. The password is
-    // cleared but the address is kept - nobody should retype an email
-    // because they fat-fingered a symbol.
-    await sleep(2400);
+    // The password is cleared but the address is kept - nobody should have to
+    // retype an email because they fat-fingered a symbol.
+    await sleep(700);
     password.value = '';
     badge.setCharged(false);
     busy = false;
@@ -231,11 +250,22 @@ export function initForm({ stage, lane }) {
     password.focus();
   });
 
+  /* ---- The screen takes the impact ------------------------------------ */
+  function shudder() {
+    if (reduced) return;
+    const pos = $('.pos');
+    pos?.classList.remove('is-shuddering');
+    void pos?.offsetWidth;
+    pos?.classList.add('is-shuddering');
+    setTimeout(() => pos?.classList.remove('is-shuddering'), 560);
+  }
+
   /* ---- Sign out ------------------------------------------------------- *
      The one real control the app shell carries, and the only way back to
      the login without a reload. */
   $('#signout')?.addEventListener('click', () => {
     runSignOut({ badge });
+    printer.tearOff();
     password.value = '';
     email.value = '';
     setStatus('');

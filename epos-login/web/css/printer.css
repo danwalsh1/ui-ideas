@@ -1,0 +1,156 @@
+/* Phase 3b: the printer is the error channel.
+   The receipt is decoration - the real message goes to the live region in
+   the form and is readable as plain text on the terminal screen. This is
+   the physical record of it, and the reason a second failure feels
+   different from a first. */
+
+/* ------------------------------------------------------------------ *
+ * The mechanism
+ * ------------------------------------------------------------------ */
+.printer__out {
+  position: absolute;
+  z-index: 3;
+  left: 17%;
+  right: 17%;
+  top: 26%;
+  height: 0;                       /* receipts hang out of it */
+}
+
+/* The stepper. Fast, small, and only while paper is moving. */
+.printer.is-printing .printer__body { animation: whirr 74ms steps(2) infinite; }
+@keyframes whirr {
+  0%   { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(0.6px, -0.5px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+/* ------------------------------------------------------------------ *
+ * A receipt
+ * ------------------------------------------------------------------ */
+.receipt {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  transform-origin: 50% 0;
+  will-change: transform;
+  filter: drop-shadow(0 4px 5px hsl(var(--shadow-hue) / 0.34));
+}
+
+.receipt__sheet {
+  position: relative;
+  height: 0;
+  padding-top: 0.45em;
+  padding-bottom: 0.55em;
+  overflow: hidden;
+  padding-left: 0.7em;
+  padding-right: 0.7em;
+  background:
+    repeating-linear-gradient(90deg, hsl(38 30% 62% / 0.045) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #FCFAF4 0%, #FBF8F1 60%, #F6F1E6 100%);
+  box-shadow:
+    inset 0 1px 0 hsl(44 70% 100% / 0.9),
+    inset -3px 0 6px -4px hsl(30 30% 45% / 0.3);
+  font-family: var(--mono);
+  /* Sized off the terminal rather than the paper, so it needs no layout read:
+     21 characters always land on the stock. printer.js refines this from the
+     measured paper when a measurement is actually available. */
+  font-size: min(9px, calc(var(--tw) * 0.0112));
+  line-height: 1.32;
+  letter-spacing: -0.01em;
+  color: #23282E;
+}
+
+/* Fed out. The resting height is the paper's own, never a measured number:
+   a document that is not being rendered reports zero for every layout read,
+   and a receipt pinned to that would feed out blank. Explicit pixel heights
+   exist only for the duration of the stutter. */
+.receipt__sheet.is-fed { height: auto; }
+
+/* Curl. The far end lifts away from the printer under its own weight. */
+.receipt__sheet { transform-origin: 50% 0; }
+
+.receipt__tear {
+  display: block;
+  width: 100%;
+  height: 5px;
+  color: #F6F1E6;
+}
+
+/* ---- Printed rows -------------------------------------------------- *
+   Thermal print is not crisp: a faint bleed, a hair of horizontal drift
+   per row, and never quite full black. */
+.receipt__row {
+  white-space: pre;
+  text-shadow: 0 0 0.6px hsl(210 14% 20% / 0.55);
+  opacity: 0.92;
+}
+.receipt__row--center { text-align: center; }
+.receipt__row--rule { color: #6E747C; letter-spacing: -0.06em; }
+.receipt__row--head {
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+.receipt__row--dim { color: #5B6068; }
+
+.receipt__brand {
+  display: flex;
+  justify-content: center;
+  padding: 0.5em 0 0.2em;
+}
+
+/* A thermal head cannot do greyscale, so the mark is knocked down to a
+   1-bit dither rather than printed as a solid. */
+.receipt__brand svg {
+  width: 16px;
+  height: 16px;
+  color: #23282E;
+  -webkit-mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+  mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+  -webkit-mask-size: 1.6px 1.6px;
+  mask-size: 1.6px 1.6px;
+}
+
+/* ---- The stack ------------------------------------------------------ *
+   Each new receipt pushes the last one further out and further askew.
+   The attempt count becomes something you can see without reading it. */
+.receipt {
+  transition:
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 400ms linear;
+}
+
+/* Torn off: the drift drops out of frame. */
+.printer__out.is-tearing .receipt {
+  transition: transform 460ms cubic-bezier(0.5, 0, 0.9, 0.4), opacity 340ms linear 120ms;
+  transform: translate(-50%, 190px) rotate(-14deg);
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * The screen takes the impact
+ * ------------------------------------------------------------------ */
+.pos.is-shuddering { animation: shudder 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes shudder {
+  0%   { transform: translate3d(0, 0, 0); }
+  12%  { transform: translate3d(-4px, 1px, 0); }
+  26%  { transform: translate3d(4px, -1px, 0); }
+  42%  { transform: translate3d(-3px, 1px, 0); }
+  58%  { transform: translate3d(3px, 0, 0); }
+  76%  { transform: translate3d(-1px, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: the receipt is presented whole rather than stuttered
+ * out, and nothing shakes. See printer.js.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .printer.is-printing .printer__body { animation: none; }
+  .pos.is-shuddering { animation: none; }
+  .receipt { transition-duration: 200ms; }
+}
