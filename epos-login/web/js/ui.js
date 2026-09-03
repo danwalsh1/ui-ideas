@@ -1,17 +1,27 @@
 // The sign-in form, and the choreography it drives.
 //
 // Phase 1: focusing a field holds the sale, typing an address assembles the
-// badge, and a password arms the counter. The form only ever moves the stage
-// between idle / held / entering - once authorising or a resolution owns the
-// stage, the form keeps its hands off.
+// badge, and a password arms the counter.
+//
+// Step 6 adds the round trip. Submitting moves the stage to authorising and
+// hands the outcome back to it: approved, declined, or locked. The visual
+// choreography of each of those - the badge hand-off, the drawer, the printed
+// receipt, the supervisor screen - arrives in steps 7 to 10. What is here is
+// the honest skeleton: a real request, a real pause, a real result.
 
 import { Badge } from './badge.js';
+import { login, probe, state as authState } from './auth.js';
 
 const $ = (sel) => document.querySelector(sel);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// The states the form is allowed to drive. Anything else belongs to the
-// auth sequence in later steps and must not be stomped on by a blur.
+// The states the form is allowed to drive on focus changes. Anything else
+// belongs to the auth sequence and must not be stomped on by a blur.
 const FORM_STATES = ['idle', 'held', 'entering'];
+
+// The authorising pause is the point of the design, so it has a floor even
+// if the service answers instantly.
+const AUTH_MIN_MS = 2000;
 
 export function initForm({ stage }) {
   const form = $('#signin-form');
@@ -21,7 +31,27 @@ export function initForm({ stage }) {
   const caps = $('#caps');
   const forgot = $('#forgot');
   const recall = $('#fkey-recall');
+  const submit = $('#submit');
+  const status = $('#signin-status');
+  const net = $('#pos-net');
   const badge = new Badge($('.badge'));
+
+  const idleStatus = status.textContent;
+  let busy = false;
+  let lockTimer = null;
+
+  /* ---- Status ------------------------------------------------------- *
+     The status line doubles as the demo hint when it has nothing to say,
+     so the panel never changes height when a message arrives. */
+  function setStatus(message, kind) {
+    if (!message) {
+      status.textContent = idleStatus;
+      delete status.dataset.kind;
+      return;
+    }
+    status.textContent = message;
+    status.dataset.kind = kind || 'info';
+  }
 
   /* ---- Stage ------------------------------------------------------- */
   function sync() {
@@ -35,9 +65,13 @@ export function initForm({ stage }) {
   form.addEventListener('focusout', () => setTimeout(sync, 0));
 
   /* ---- Badge assembly ---------------------------------------------- */
-  email.addEventListener('input', () => badge.setAccount(email.value));
+  email.addEventListener('input', () => {
+    badge.setAccount(email.value);
+    if (status.dataset.kind) setStatus('');
+  });
   password.addEventListener('input', () => {
     badge.setCharged(password.value.length > 0);
+    if (status.dataset.kind) setStatus('');
     sync();
   });
 
@@ -76,12 +110,10 @@ export function initForm({ stage }) {
   password.addEventListener('blur', () => { caps.hidden = true; });
 
   /* ---- F1 Recall ----------------------------------------------------- *
-     The only function key that does anything yet, so it is the only one
-     rendered as a button. It moves focus to password recovery, which is
-     what Recall means on a till: bring back what was set aside. */
-  function recallPassword() {
-    forgot.focus();
-  }
+     The only function key that does anything yet, so the only one rendered
+     as a button. It moves focus to password recovery, which is what Recall
+     means on a till: bring back what was set aside. */
+  const recallPassword = () => forgot.focus();
   recall.addEventListener('click', recallPassword);
   window.addEventListener('keydown', (event) => {
     if (event.key !== 'F1') return;
@@ -89,10 +121,97 @@ export function initForm({ stage }) {
     recallPassword();
   });
 
-  /* ---- Submit -------------------------------------------------------- *
-     There is no auth service until step 6. Swallow the submit so the page
-     cannot navigate away, and leave the credentials untouched. */
-  form.addEventListener('submit', (event) => event.preventDefault());
+  /* ---- Lockout ------------------------------------------------------- *
+     Counts down in the status line. Step 10 gives this its own full-bleed
+     supervisor screen; the till is genuinely refusing input either way. */
+  function lockdown(seconds) {
+    let left = Math.max(1, Number(seconds) || 30);
+    clearTimeout(lockTimer);
 
-  return { badge, sync };
+    const tick = () => {
+      if (left <= 0) {
+        setStatus('');
+        busy = false;
+        submit.disabled = false;
+        stage.set('idle');
+        sync();
+        return;
+      }
+      setStatus(`Terminal locked. A supervisor must unlock this till. ${left}s`, 'error');
+      left -= 1;
+      lockTimer = setTimeout(tick, 1000);
+    };
+    tick();
+  }
+
+  /* ---- Submit -------------------------------------------------------- */
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (busy) return;
+
+    const address = email.value.trim();
+    if (!address || !password.value) {
+      setStatus('Enter your email and password.', 'warn');
+      (address ? password : email).focus();
+      return;
+    }
+    if (!email.checkValidity()) {
+      setStatus('That email address does not look right.', 'warn');
+      email.focus();
+      return;
+    }
+
+    busy = true;
+    submit.disabled = true;
+    setStatus('');
+    stage.set('authorising');
+
+    const started = performance.now();
+    const result = await login(address, password.value);
+    const remaining = AUTH_MIN_MS - (performance.now() - started);
+    if (remaining > 0) await sleep(remaining);
+
+    if (result.ok) {
+      stage.set('approved');
+      setStatus(`Signed in as ${result.user.name}. ${result.user.role}.`, 'ok');
+      // Step 8 opens the drawer and hands over to the app. Stop here, and
+      // stay busy - there is nothing to submit again.
+      return;
+    }
+
+    if (result.code === 'locked') {
+      stage.set('locked');
+      lockdown(result.retryAfter);
+      return;
+    }
+
+    stage.set('declined');
+    const count = result.attempt && result.of
+      ? ` Attempt ${result.attempt} of ${result.of}.`
+      : '';
+    setStatus(result.message + count, 'error');
+
+    // Step 9 replaces this beat with the printed receipt. The password is
+    // cleared but the address is kept - nobody should retype an email
+    // because they fat-fingered a symbol.
+    await sleep(2400);
+    password.value = '';
+    badge.setCharged(false);
+    busy = false;
+    submit.disabled = false;
+    stage.set('idle');
+    sync();
+    password.focus();
+  });
+
+  /* ---- Link state ---------------------------------------------------- */
+  probe().then((online) => {
+    if (net) net.textContent = online ? 'Online' : 'Offline';
+    if (!online) net.dataset.offline = '';
+    if (authState.offline) {
+      console.info('[auth] service unreachable - using the offline stand-in');
+    }
+  });
+
+  return { badge, sync, setStatus };
 }

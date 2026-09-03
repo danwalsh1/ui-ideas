@@ -140,7 +140,7 @@
               <div class="pos__status">
                 <span class="pos__till">Till 04</span>
                 <span class="pos__clock">09:41</span>
-                <span class="pos__net">Online</span>
+                <span class="pos__net" id="pos-net">Online</span>
               </div>
             </header>
 
@@ -195,7 +195,12 @@
                     <a class="link" id="forgot" href="#recall">Forgot password?</a>
                   </div>
 
-                  <button type="submit" class="submit">Sign in</button>
+                  <button type="submit" class="submit" id="submit">Sign in</button>
+
+                  <!-- Doubles as the demo hint when it has nothing to say, so
+                       the panel never changes height when a message arrives.
+                       Delete the default text for a real deployment. -->
+                  <p class="signin__status" id="signin-status" role="status" aria-live="polite">Demo · dan@counterpoint.co / openlane</p>
                 </form>
               </section>
 

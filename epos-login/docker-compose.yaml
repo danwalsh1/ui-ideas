@@ -1,11 +1,39 @@
 # The Open Lane - EPOS login
 #
-# Step 1 serves the static set only; the auth service joins at build step 6.
-# Port 8089 so this can run alongside kinetic-topography on 8088.
+#   web : nginx serving the static client, proxying /api -> auth service
+#   api : dependency-free Node auth service with a deliberate verification
+#         delay - that pause is the authorising phase, not dead time
+#
+# Port 8089 so this runs alongside kinetic-topography on 8088.
 services:
+  api:
+    image: node:22-alpine
+    container_name: openlane-api
+    working_dir: /app
+    command: ["node", "server.js"]
+    volumes:
+      - ./server:/app:ro
+    environment:
+      PORT: "8080"
+      AUTH_MIN_DELAY_MS: "1500"
+      AUTH_MAX_DELAY_MS: "2400"
+      AUTH_LOCK_AFTER: "5"
+      AUTH_LOCK_MS: "30000"
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+    restart: unless-stopped
+
   web:
     image: nginx:1.27-alpine
-    container_name: epos-web
+    container_name: openlane-web
+    depends_on:
+      - api
     volumes:
       - ./web:/usr/share/nginx/html:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro

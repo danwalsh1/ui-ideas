@@ -620,3 +620,50 @@
   .badge.is-charged::after { animation: none; opacity: 0.4; }
   .badge.is-charged .badge__chip { animation: none; }
 }
+
+/* ------------------------------------------------------------------ *
+ * Status line
+ * Carries the demo hint when idle and the outcome when there is one, so
+ * the panel height never changes as messages come and go. Messages get
+ * their own opaque plate: the pane sits over a live scene and tinted
+ * text alone cannot be relied on to stay legible.
+ * ------------------------------------------------------------------ */
+.signin__status {
+  display: block;
+  margin: 0.7em 0 0;
+  padding: 0.34em 0.6em;
+  border: 1px solid transparent;
+  border-radius: 0.4em;
+  font-size: 0.74em;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-align: center;
+  color: var(--ink-faint);
+  min-height: 2.4em;
+}
+
+.signin__status[data-kind] { font-weight: 600; }
+
+.signin__status[data-kind="error"] {
+  border-color: hsl(1 62% 46% / 0.45);
+  background: hsl(1 70% 96%);
+  color: #8C1F1B;
+}
+.signin__status[data-kind="warn"] {
+  border-color: hsl(37 90% 45% / 0.45);
+  background: hsl(41 92% 95%);
+  color: #7A4E05;
+}
+.signin__status[data-kind="ok"] {
+  border-color: hsl(147 52% 36% / 0.42);
+  background: hsl(147 60% 95%);
+  color: #10603A;
+}
+
+/* Offline stand-in: the header says so rather than claiming a link. */
+.pos__net[data-offline]::before {
+  background: var(--pending);
+  box-shadow: 0 0 0 0.22em hsl(37 88% 48% / 0.18);
+}
+
+.submit:disabled { opacity: 0.55; cursor: progress; filter: none; }
