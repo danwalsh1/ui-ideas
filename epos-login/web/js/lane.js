@@ -111,6 +111,12 @@ export class Lane {
     // Set by whoever needs the running figure. The app shell uses it so its
     // Pay button tracks the live sale rather than a snapshot taken at sign-on.
     this.onTotal = null;
+    // The two moments the lane makes a noise. Same convention as onTotal: a
+    // single nullable slot, which carries onTotal's hazard too - the approved
+    // sequence already overwrites that one wholesale, so the first thing that
+    // wants to share either slot must convert both to Sets together.
+    this.onScan = null;   // an item crossed the glass
+    this.onBag = null;    // an item reached the bag
     this.running = false;
     this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -204,6 +210,7 @@ export class Lane {
       if (!it.bagging && centre >= this.bagX) {
         it.bagging = true;
         it.el.classList.add('is-bagging');
+        this.onBag?.();
       }
     }
 
@@ -240,6 +247,7 @@ export class Lane {
     this.scanner.classList.remove('is-reading');
     void this.scanner.offsetWidth;          // restart the beam animation
     this.scanner.classList.add('is-reading');
+    this.onScan?.(it.entry);                // the beep and the beam, one tick
     setTimeout(() => this.scanner.classList.remove('is-reading'), 260);
 
     it.el.classList.add('is-scanned');
@@ -345,7 +353,11 @@ export class Lane {
   _startStatic() {
     const tick = () => {
       if (this.spawnIndex < this.basket.length) {
-        this._addRow(this.basket[this.spawnIndex++]);
+        // _scan() is never reached on this path, so the scan is announced
+        // here instead. Sound carries the narrative the animation is not.
+        const entry = this.basket[this.spawnIndex++];
+        this._addRow(entry);
+        this.onScan?.(entry);
         setTimeout(tick, 4200);
       } else {
         setTimeout(() => {

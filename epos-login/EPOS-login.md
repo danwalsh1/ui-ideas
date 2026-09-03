@@ -479,6 +479,47 @@ The scanner beep is the anchor. Once a visitor has heard it a dozen times during
 idle, using it again in Phase 2 to scan *their own* credentials does a lot of
 narrative work for free.
 
+**What was built.** The table above is a wishlist, and a page that clicks on
+every keystroke and hums continuously is exhausting, so the kit leans on a fact
+about the design rather than on volume: every state except `idle` and
+`approved` holds the sale, so goods queue short of the scanner and the beeping
+physically stops the moment anyone focuses the form. Nothing had to be faded
+out to make room for the sign-in — the set already does it.
+
+Each voice has a **place** on the counter rather than a level: a pan, an air
+filter and a send into one procedurally generated room, because distance is
+carried by all three together and never by level alone. The drawer is the
+nearest thing and also the darkest and wettest, which is what "under the
+counter" sounds like.
+
+Two of the numbers matter more than the rest. A thermal printer's stepper feeds
+0.125mm per step at 50–100mm/s, so the whirr's fundamental **is** the step rate,
+400–800Hz — which is why a receipt printer sounds like a trapped hornet rather
+than a motor, and why the visible stutter and the audible buzz are the same
+event. And the beep is a **square** wave with a **flat top**, not a sine with an
+envelope: a piezo is driven by a rectangular gate, and a sine at 2.7kHz is a
+hearing test.
+
+Under `authorising` the room and the belt duck away and the terminal's own
+supply is left exposed with a fan rising over it — the machine straining, not a
+spaceship. Under `locked` every bed fades and there is one sound at each end of
+the thirty seconds; the room returning **is** the unlock.
+
+The balance was set by rendering each voice into an `OfflineAudioContext` and
+measuring it, not by ear, which caught three things listening might not have:
+an ambient bed twenty decibels louder than intended that masked half the kit, a
+gate that suppressed every sound for the first ninety milliseconds of a
+context's life, and gain nodes whose envelopes started *after* their sources, so
+a keystroke fired four milliseconds of full-scale sine and the drawer a tenth of
+a second of full-scale noise.
+
+`prefers-reduced-motion` is **not** treated as a mute: it is a vestibular
+signal, it says nothing about audio, and off-by-default already gives everyone
+the strongest guarantee there is. It is honoured as a choreography constraint
+instead — the reduced-motion path skips the belt entirely, so the scan is
+announced from the static list, and the badge beep is fired directly because
+the flight does not happen. Sound with no motion is a supported configuration.
+
 ---
 
 ## Accessibility and reduced motion

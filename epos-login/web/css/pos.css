@@ -488,7 +488,14 @@
   color: var(--ink-soft);
 }
 
-/* The one key that does something. */
+/* display: inline-flex above is an author rule, so it outranks the UA
+   stylesheet's [hidden] { display: none } and the attribute would do nothing.
+   The sound key ships hidden and the Settings span is hidden in its place, so
+   without this guard both would show at once. */
+.fkeys span[hidden],
+.fkeys .fkey[hidden] { display: none; }
+
+/* The keys that do something. */
 .fkeys .fkey {
   font: inherit;
   color: inherit;
@@ -499,13 +506,25 @@
 .fkeys .fkey:hover b { color: var(--brand); }
 .fkeys .fkey:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 
-/* Arming: the active key picks up the accent as the counter wakes. */
-:root[data-state="entering"] .fkeys .fkey {
+/* Arming: the active key picks up the accent as the counter wakes. Scoped to
+   Recall, not to every .fkey - the sound key is a toggle, and an armed one
+   would be indistinguishable from a pressed one. */
+:root[data-state="entering"] #fkey-recall {
   border-color: var(--brand);
   background: var(--brand-soft);
   color: var(--brand);
 }
-:root[data-state="entering"] .fkeys .fkey b { color: var(--brand); }
+:root[data-state="entering"] #fkey-recall b { color: var(--brand); }
+
+/* Pressed, following the password reveal's idiom. --brand and never
+   --approved: green in this strip would read as a transaction outcome. */
+.fkeys #fkey-sound[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.fkeys #fkey-sound[aria-pressed="true"] b { color: var(--brand); }
+.fkeys #fkey-sound[disabled] { opacity: 0.45; cursor: default; }
 
 .fkeys .fkeys__spacer { flex: 1; border: 0; background: none; padding: 0; }
 
@@ -516,7 +535,10 @@
 @container screen (max-width: 460px) {
   .pos__body { grid-template-columns: 1fr; }
   .sale { display: none; }
-  .fkeys span:nth-child(n + 3) { display: none; }
+  /* The dead keys go; the spacer stays, or the sound toggle jams against F2.
+     A button is not matched, so the mute survives - which is correct, it must
+     never be the thing that vanishes. */
+  .fkeys span:nth-child(n + 2):not(.fkeys__spacer) { display: none; }
 }
 
 /* ------------------------------------------------------------------ *

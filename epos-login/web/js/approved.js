@@ -6,7 +6,7 @@
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function runApproved({ user, lane, reduced }) {
+export async function runApproved({ user, lane, reduced, onDrawer }) {
   const pos = document.querySelector('.pos');
   const drawer = document.querySelector('.drawer');
   const rake = document.querySelector('.rake');
@@ -39,6 +39,7 @@ export async function runApproved({ user, lane, reduced }) {
 
   // The bang.
   drawer?.classList.add('is-open');
+  onDrawer?.(1);
   rake?.classList.remove('is-on');
   void rake?.offsetWidth;                 // restart the flare
   rake?.classList.add('is-on');
@@ -57,6 +58,7 @@ export async function runApproved({ user, lane, reduced }) {
 
   await sleep(reduced ? 120 : 700);
   drawer?.classList.remove('is-open');
+  onDrawer?.(0.45);
 
   // The lane is the operator's now.
   lane?.setHold(false);

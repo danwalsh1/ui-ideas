@@ -93,6 +93,7 @@ export class Printer {
     this.printer = document.querySelector('.printer');
     this.out = document.querySelector('.printer__out');
     this.stack = [];
+    this.onTear = null;   // paper pulled across the bar
   }
 
   get hasPaper() { return this.stack.length > 0; }
@@ -161,7 +162,7 @@ export class Printer {
     });
   }
 
-  async print(rows, { reduced = false } = {}) {
+  async print(rows, { reduced = false, onStep = null } = {}) {
     if (!this.out) return;
 
     this._shove();
@@ -183,7 +184,13 @@ export class Printer {
     // about a second, so stepping row by row would turn a three-quarter-second
     // feed into a twelve-second crawl, and every layout read comes back zero,
     // so there would be nothing to step through anyway.
-    if (reduced || document.hidden) return;
+    if (reduced || document.hidden) {
+      // One continuous feed rather than a stutter: there are no visible steps
+      // to sync to, and a fake step loop would be sound narrating motion that
+      // is deliberately not happening.
+      onStep?.({ whole: true });
+      return;
+    }
 
     // Where each row ends, so the paper pauses on row boundaries.
     const padBottom = parseFloat(getComputedStyle(sheet).paddingBottom) || 0;
@@ -197,6 +204,7 @@ export class Printer {
     for (const stop of stops) {
       if (!receipt.isConnected) break;          // torn off mid-print
       sheet.style.height = `${stop}px`;
+      onStep?.({ whole: false });             // never awaited
       // A stepper does not glide: a few millimetres, a pause, a few more.
       await sleep(46 + Math.random() * 26);
     }
@@ -209,6 +217,7 @@ export class Printer {
   /** Tear the drift off. It drops out of frame. */
   tearOff() {
     if (!this.stack.length || !this.out) return;
+    this.onTear?.();      // after the guard: this is bound to every keystroke
     const gone = this.stack;
     this.stack = [];
     this.out.classList.add('is-tearing');

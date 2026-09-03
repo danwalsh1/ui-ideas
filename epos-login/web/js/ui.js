@@ -14,6 +14,7 @@ import { login, probe, state as authState } from './auth.js';
 import { runHandoff } from './handoff.js';
 import { runApproved, runSignOut } from './approved.js';
 import { Printer, declinedReceipt, lockedReceipt, signOnReceipt } from './printer.js';
+import { SoundKit } from './sound.js';
 
 const $ = (sel) => document.querySelector(sel);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -26,7 +27,7 @@ const FORM_STATES = ['idle', 'held', 'entering'];
 // if the service answers instantly.
 const AUTH_MIN_MS = 2000;
 
-export function initForm({ stage, lane }) {
+export function initForm({ stage, lane, sound = null }) {
   const form = $('#signin-form');
   const email = $('#email');
   const password = $('#password');
@@ -34,6 +35,7 @@ export function initForm({ stage, lane }) {
   const caps = $('#caps');
   const forgot = $('#forgot');
   const recall = $('#fkey-recall');
+  const soundKey = $('#fkey-sound');
   const submit = $('#submit');
   const status = $('#signin-status');
   const net = $('#pos-net');
@@ -43,6 +45,7 @@ export function initForm({ stage, lane }) {
   const lockRef = $('#lockout-ref');
   const badge = new Badge($('.badge'));
   const printer = new Printer();
+  printer.onTear = () => sound?.printerTear();
 
   const idleStatus = status.textContent;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -151,6 +154,12 @@ export function initForm({ stage, lane }) {
     el.addEventListener('keydown', checkCaps);
     el.addEventListener('keyup', checkCaps);
     el.addEventListener('focus', checkCaps);
+    // Its own listener, not hung off checkCaps: that one is also bound to
+    // keyup and focus and would fire two or three times per character. And
+    // not `input`, which fires once for a whole paste.
+    el.addEventListener('keydown', (event) => {
+      if (stage.is(...FORM_STATES)) sound?.key(event);
+    });
   }
   password.addEventListener('blur', () => { caps.hidden = true; });
 
@@ -302,6 +311,9 @@ export function initForm({ stage, lane }) {
     submit.disabled = true;
     stage.set('authorising');
     setStatus('Authorising. Do not remove card.', 'info');
+    // The badge never crosses the glass under reduced motion, so the beep that
+    // the whole idle loop has been teaching is fired directly. Not awaited.
+    if (reduced) setTimeout(() => sound?.beep(), 900);
 
     const started = performance.now();
 
@@ -316,6 +328,7 @@ export function initForm({ stage, lane }) {
         readerEl: $('.reader'),
         slotEl: $('.reader__slot'),
         reduced,
+        onScan: () => sound?.beep(),
       }),
     ]);
 
@@ -329,10 +342,10 @@ export function initForm({ stage, lane }) {
     if (result.ok) {
       stage.set('approved');
       setStatus(`Signed in as ${result.user.name}. ${result.user.role}.`, 'ok');
-      await runApproved({ user: result.user, lane, reduced });
+      await runApproved({ user: result.user, lane, reduced, onDrawer: (k) => sound?.drawer(k) });
       // The drift of failures drops away and a single SIGNED ON takes its place.
       printer.tearOff();
-      printer.print(signOnReceipt(result.user), { reduced });
+      printer.print(signOnReceipt(result.user), { reduced, onStep: (i) => sound?.printStep(i) });
       // Signed on. Nothing to submit again until they sign out.
       return;
     }
@@ -344,7 +357,7 @@ export function initForm({ stage, lane }) {
       const ref = lockRefFor();
       stage.set('locked');
       shudder();
-      printer.print(lockedReceipt({ account: address, seconds, ref }), { reduced });
+      printer.print(lockedReceipt({ account: address, seconds, ref }), { reduced, onStep: (i) => sound?.printStep(i) });
       lockdown(seconds, { ref });
       return;
     }
@@ -357,7 +370,7 @@ export function initForm({ stage, lane }) {
     shudder();
     await printer.print(
       declinedReceipt({ account: address, attempt: result.attempt, of: result.of }),
-      { reduced },
+      { reduced, onStep: (i) => sound?.printStep(i) },
     );
 
     // The password is cleared but the address is kept - nobody should have to
@@ -396,6 +409,102 @@ export function initForm({ stage, lane }) {
     stage.set('idle');
     setTimeout(() => email.focus(), 320);
   });
+
+  /* ---- Sound --------------------------------------------------------- *
+     One obvious toggle, off until asked. The context is created inside this
+     click and nowhere else, so a visitor who never presses it never has an
+     audio thread.
+
+     Only the affirmative is ever stored, in sessionStorage rather than
+     localStorage for the reason the lock already gives: a click a week ago in
+     a different context is not asking. Autoplay would stop it making noise on
+     load either way, but it could make noise on the first incidental click
+     anywhere, which is the same ambush. Per-tab also means a duplicated tab
+     opens silent, so two room tones can never beat against each other. */
+  const SOUND_KEY = 'openlane.sound';
+
+  function rememberSound(on) {
+    try {
+      if (on) sessionStorage.setItem(SOUND_KEY, 'on');
+      else sessionStorage.removeItem(SOUND_KEY);
+    } catch { /* storage can be denied; the toggle still works for this visit */ }
+  }
+
+  function recallSound() {
+    try { return sessionStorage.getItem(SOUND_KEY) === 'on'; }
+    catch { return false; }
+  }
+
+  if (soundKey && sound && SoundKit.supported) {
+    soundKey.hidden = false;
+    const settings = $('.fkeys__settings');
+    if (settings) settings.hidden = true;
+    const paint = (on) => soundKey.setAttribute('aria-pressed', String(on));
+
+    // Reverting the control is the only honest thing to do if the kit dies
+    // mid-session: a button reading "on" over a silent page is worse than one
+    // reading "off".
+    sound.onFail = () => { paint(false); rememberSound(false); };
+
+    const toggleSound = () => {
+      if (sound.enabled) {
+        sound.setEnabled(false);
+        paint(false);
+        rememberSound(false);
+        return;
+      }
+      // Everything to here is synchronous. Safari binds the gesture token to
+      // the synchronous part of the handler and spends it on the first await.
+      if (!sound.arm()) {
+        soundKey.disabled = true;
+        soundKey.title = 'Sound is not available in this browser';
+        return;
+      }
+      sound.setEnabled(true);
+      paint(true);                       // immediately: a 300ms delay on a
+      rememberSound(true);               // toggle feels broken
+      // Beds come up matching the state we are already in. One-shots do not
+      // replay: turning sound on mid-sequence must not retroactively fire a
+      // beep for a moment that has passed.
+      sound.setState(stage.current, { silent: true });
+      sound.whenRunning(300).then((live) => {
+        if (live) return;
+        sound.setEnabled(false);
+        paint(false);
+        rememberSound(false);
+        soundKey.title = 'The browser would not start audio. Click again to retry.';
+      });
+    };
+
+    soundKey.addEventListener('click', toggleSound);
+    window.addEventListener('keydown', (event) => {
+      if (event.key !== 'F4') return;
+      event.preventDefault();
+      toggleSound();          // not gated on FORM_STATES - unlike F1, killing
+    });                       // the sound has to work under a takeover
+
+    // A restored preference is an intent, not a permission: no context is
+    // built at load, and nothing sounds on the unlocking gesture itself. The
+    // first audible thing is the next real event, over a master that faded up
+    // more slowly than a deliberate press gets.
+    if (recallSound() || new URLSearchParams(location.search).has('sound')) {
+      paint(true);
+      const armOnce = () => {
+        if (!sound.arm()) { paint(false); rememberSound(false); return; }
+        sound.setEnabled(true);
+        sound.setState(stage.current, { silent: true });
+        sound.fadeIn(2.2);
+        sound.whenRunning(300).then((ok) => {
+          if (ok) return;
+          sound.setEnabled(false);
+          paint(false);
+          rememberSound(false);
+        });
+      };
+      addEventListener('pointerdown', armOnce, { once: true });
+      addEventListener('keydown', armOnce, { once: true });
+    }
+  }
 
   /* ---- Link state ---------------------------------------------------- *
      Painted from the auth client's live state rather than once from the boot

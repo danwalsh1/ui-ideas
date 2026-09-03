@@ -4,12 +4,24 @@
 import { initForm } from './ui.js';
 import { Lane } from './lane.js';
 import { Stage } from './stage.js';
+import { SoundKit } from './sound.js';
 
 const lane = new Lane();
 lane.start();
 
+// Built here and nowhere else. Constructing it touches no Web Audio at all -
+// the context arrives with the toggle's first click.
+const sound = new SoundKit();
+lane.onScan = () => sound.beep();
+lane.onBag = () => sound.bag();
+
 const stage = new Stage({ lane });
-initForm({ stage, lane });
+stage.on((name) => sound.setState(name));
+initForm({ stage, lane, sound });
+
+// An AudioContext keeps running in a hidden tab while the scene's frame loop
+// starves, so the room would play on over a frozen set.
+document.addEventListener('visibilitychange', () => sound.setVisible(!document.hidden));
 
 // ?state=authorising jumps straight to a state, which makes reviewing a
 // single phase a link rather than a click-through.
@@ -19,6 +31,7 @@ stage.set(params.get('state') || 'idle');
 // Handles for tuning from the console while the design is in flux.
 window.lane = lane;
 window.stage = stage;
+window.sound = sound;
 
 if (params.has('debug')) {
   import('./debug.js').then((m) => m.mount(stage)).catch(() => {});

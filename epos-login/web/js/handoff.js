@@ -52,7 +52,7 @@ function buildFlyer(badgeEl) {
  * Run the hand-off. Resolves once the badge is in the reader, so the caller
  * can wait on it alongside the request and never resolve mid-flight.
  */
-export async function runHandoff({ badgeEl, scannerEl, glassEl, readerEl, slotEl, reduced }) {
+export async function runHandoff({ badgeEl, scannerEl, glassEl, readerEl, slotEl, reduced, onScan }) {
   // Reduced motion skips the flight entirely - the takeover screen and the
   // reader still change state, so nothing is lost but the travel. A hidden
   // tab skips it for the same reason: there is no one to show it to, and
@@ -95,8 +95,11 @@ export async function runHandoff({ badgeEl, scannerEl, glassEl, readerEl, slotEl
       { transform: at(glass.x, glass.y, -2, 0.72) },
     ], 720);
 
-    // 3. The read. Same beam, same glow the goods get.
+    // 3. The read. Same beam, same glow - and the same beep - the goods get.
     scannerEl?.classList.add('is-reading');
+    // Fired at the start of the beat, never scheduled forward: a throttled tab
+    // snaps each leg to its end and the sound would arrive in a heap.
+    onScan?.();
     await play(fly, [
       { transform: at(glass.x, glass.y, -2, 0.72) },
       { transform: at(glass.x, glass.y + 3, -2, 0.70), offset: 0.4 },

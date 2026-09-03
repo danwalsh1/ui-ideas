@@ -48,6 +48,11 @@ worth seeing, and the lock is held server-side, so reloading does not escape it.
   was already underneath. The sale that was running by itself is now yours.
 - **Sign out** from the header to run the whole thing again.
 - **F1** recalls the password from anywhere on the page.
+- **F4, or the Sound key in the footer, turns the sound on.** It is off until
+  you ask, and everything is synthesised at runtime - there are no audio files
+  to download. The scanner beep is the anchor: once you have heard it a dozen
+  times during idle, the badge crossing the same glass on submit is the same
+  beep, which is the whole point. Worth turning on before watching the lane.
 
 ## Development
 
@@ -58,8 +63,13 @@ reload. No build step, no dependencies, vanilla ES modules.
 | --- | --- |
 | `?debug` | State switcher panel; number keys `1`–`7` also work |
 | `?state=authorising` | Jump straight to a stage state |
+| `?sound` | Arm the sound on the first click or keypress |
 
-`window.stage` and `window.lane` are exposed for tuning from the console.
+`window.stage`, `window.lane` and `window.sound` are exposed for tuning from
+the console.
+
+The sound kit renders deterministically into an `OfflineAudioContext`, which is
+how its balance was set - see the gain budget comment in `web/js/sound.js`.
 
 ## Build progress
 
@@ -75,5 +85,5 @@ reload. No build step, no dependencies, vanilla ES modules.
 | 8 | Approved — **Phase 3a complete** | done |
 | 9 | Declined — **Phase 3b complete**, plus the sign-on receipt | done |
 | 10 | Supervisor lockout — **Phase 3c complete** | done |
-| 11 | Sound | next |
-| 12 | Polish, responsive, contrast audit | |
+| 11 | Sound — **synthesised kit behind the toggle** | done |
+| 12 | Polish, responsive, contrast audit | next |

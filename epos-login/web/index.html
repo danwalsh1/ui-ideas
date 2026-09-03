@@ -252,16 +252,23 @@
 
             </div>
 
-            <!-- F1 is real now: it recalls the password, which is what
-                 Recall means on a till. The rest still do nothing, so they
-                 stay inert text hidden from assistive tech rather than
-                 buttons that go nowhere. -->
+            <!-- F1 and F4 are real: F1 recalls the password, which is what
+                 Recall means on a till, and F4 is the sound. The rest still do
+                 nothing, so they stay inert text hidden from assistive tech
+                 rather than buttons that go nowhere - which is also why F4
+                 carries a key legend only because the key is genuinely bound.
+
+                 Two items here, one visible: the script unhides the button and
+                 hides the span only where Web Audio exists, so a browser
+                 without it renders the strip exactly as before with no
+                 evidence a sound layer was ever considered. -->
             <div class="fkeys">
               <button type="button" class="fkey" id="fkey-recall"><b>F1</b> Recall</button>
               <span aria-hidden="true"><b>F2</b> Support</span>
               <span aria-hidden="true"><b>F3</b> Language</span>
               <span class="fkeys__spacer" aria-hidden="true"></span>
-              <span aria-hidden="true">Settings</span>
+              <button type="button" class="fkey" id="fkey-sound" aria-pressed="false" hidden><b>F4</b> Sound</button>
+              <span class="fkeys__settings" aria-hidden="true">Settings</span>
             </div>
 
             <!-- Phase 2. The status is announced through the live region in
