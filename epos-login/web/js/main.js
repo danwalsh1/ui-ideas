@@ -9,7 +9,7 @@ const lane = new Lane();
 lane.start();
 
 const stage = new Stage({ lane });
-initForm({ stage });
+initForm({ stage, lane });
 
 // ?state=authorising jumps straight to a state, which makes reviewing a
 // single phase a link rather than a click-through.

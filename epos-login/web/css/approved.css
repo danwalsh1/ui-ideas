@@ -1,0 +1,262 @@
+/* Phase 3a: being let in.
+   Fast, warm and physical - not a page navigating.
+
+   On the drawer: this camera looks down at the counter surface, so there is
+   no angle from which the inside of a till drawer is visible. It is sold the
+   way the concept always described it - "implied beneath the counter lip":
+   a lit slot opening under the terminal, a wash of warm light raking up
+   across the counter, and the whole set taking the bang. Drawing a drawer we
+   could not actually see would read as a floating box. */
+
+/* ------------------------------------------------------------------ *
+ * The lit slot under the terminal
+ * ------------------------------------------------------------------ */
+.drawer {
+  position: absolute;
+  left: 50%;
+  bottom: var(--lane-base);
+  width: calc(var(--tw) * 0.44);
+  height: calc(var(--tw) * 0.03);
+  translate: -50% 0;
+  border-radius: 0 0 4px 4px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms linear;
+}
+
+.drawer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  translate: 0 -100%;
+  background: linear-gradient(180deg, #1B1F24 0%, #2A2018 40%, #6B4A15 100%);
+  box-shadow: inset 0 2px 5px hsl(24 40% 4% / 0.9);
+  transition: translate 260ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+/* The warm interior, glimpsed. */
+.drawer::after {
+  content: "";
+  position: absolute;
+  inset: auto 6% 0 6%;
+  height: 55%;
+  translate: 0 100%;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, #FFCE7A, #F4A63C 60%, #C97A18);
+  box-shadow: 0 0 14px hsl(38 92% 60% / 0.85);
+  transition: translate 260ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.drawer.is-open { opacity: 1; }
+.drawer.is-open::before,
+.drawer.is-open::after { translate: 0 0; }
+
+/* ------------------------------------------------------------------ *
+ * The rake - light spilling up out of the drawer across the counter
+ * ------------------------------------------------------------------ */
+.rake {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--lane-base) - 2vh);
+  width: min(190vw, 2200px);
+  height: 78vh;
+  translate: -50% 0;
+  z-index: 6;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0;
+  background:
+    radial-gradient(46% 62% at 50% 100%, hsl(38 96% 68% / 0.92), transparent 68%),
+    radial-gradient(80% 90% at 50% 100%, hsl(34 92% 62% / 0.38), transparent 74%);
+}
+
+.rake.is-on { animation: rake 1500ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@keyframes rake {
+  0%   { opacity: 0; scale: 0.72 0.5; }
+  9%   { opacity: 1; scale: 1 1; }
+  34%  { opacity: 0.62; }
+  100% { opacity: 0; scale: 1.1 1.16; }
+}
+
+/* The bang. Everything standing on the counter takes it. */
+body.is-jolt .stage,
+body.is-jolt .lane-belt { animation: jolt 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+
+@keyframes jolt {
+  0%   { transform: translate3d(0, 0, 0); }
+  14%  { transform: translate3d(0, 5px, 0); }
+  32%  { transform: translate3d(-2px, -3px, 0); }
+  52%  { transform: translate3d(2px, 2px, 0); }
+  74%  { transform: translate3d(-1px, -1px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+/* ------------------------------------------------------------------ *
+ * The pane: sign-in on top, the app underneath, already there
+ * ------------------------------------------------------------------ */
+.pos__pane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pos__pane > .signin,
+.pos__pane > .home {
+  position: absolute;
+  inset: 0;
+}
+
+/* Pulled away like a receipt: up, out, and slightly askew as it goes. */
+.signin {
+  transition:
+    translate 620ms cubic-bezier(0.5, 0, 0.72, 0),
+    rotate 620ms cubic-bezier(0.5, 0, 0.72, 0),
+    opacity 420ms linear 200ms;
+}
+.pos.is-home .signin {
+  translate: 0 -112%;
+  rotate: -1.6deg;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * The POS home screen - a convincing shell, not a working till
+ * ------------------------------------------------------------------ */
+.home {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75em;
+  padding: 1.1em clamp(1.2em, 3.2cqw, 2.6em);
+  opacity: 0;
+  translate: 0 10px;
+  transition: opacity 460ms var(--ease) 180ms, translate 520ms var(--ease) 180ms;
+}
+.home[hidden] { display: none; }
+.pos.is-home .home { opacity: 1; translate: 0 0; }
+
+.home__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+}
+
+.home__title {
+  margin: 0;
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.home__shift {
+  font-family: var(--mono);
+  font-size: 0.72em;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+/* Category tiles. Presentational: this is a shell, and a grid of buttons
+   that do nothing would be worse than a grid that never claimed to. */
+.home__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5em;
+}
+
+.home__grid span {
+  display: grid;
+  place-items: center;
+  padding: 0.75em 0.3em;
+  border: 1px solid var(--rule);
+  border-radius: 0.45em;
+  background: linear-gradient(180deg, #FFFFFF, #F5F7FA);
+  box-shadow: 0 1px 2px hsl(215 25% 40% / 0.07);
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+  text-align: center;
+}
+.home__grid span:first-child {
+  border-color: hsl(232 60% 74% / 0.6);
+  background: linear-gradient(180deg, #FFFFFF, var(--brand-soft));
+  color: var(--brand);
+}
+
+.home__pay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding: 0.8em 1em;
+  border-radius: 0.5em;
+  background: linear-gradient(180deg, #1DBA6A, var(--approved));
+  color: #fff;
+  font-size: 0.9em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.28),
+    0 1px 2px hsl(147 60% 20% / 0.3),
+    0 6px 14px -6px hsl(147 60% 28% / 0.5);
+}
+.home__pay b { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+
+/* ------------------------------------------------------------------ *
+ * Signed-on chip in the header, with the one real control on the app
+ * ------------------------------------------------------------------ */
+.pos__user {
+  display: none;
+  align-items: center;
+  gap: 0.6em;
+}
+.pos.is-home .pos__user { display: flex; }
+.pos.is-home .pos__status { display: none; }
+
+.pos__who {
+  text-align: right;
+  line-height: 1.2;
+}
+.pos__who strong { display: block; font-size: 0.82em; }
+.pos__who span {
+  font-size: 0.66em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.signout {
+  padding: 0.4em 0.75em;
+  border: 1px solid var(--rule);
+  border-radius: 0.42em;
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color 160ms, color 160ms, background 160ms;
+}
+.signout:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+.signout:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: it still opens, it just does not shake or rake
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  body.is-jolt .stage,
+  body.is-jolt .lane-belt { animation: none; }
+  .rake.is-on { animation: rake 700ms linear forwards; }
+  .signin { transition-duration: 200ms; }
+  .home { transition-duration: 200ms; }
+}

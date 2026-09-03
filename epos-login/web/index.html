@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="css/lane.css">
 <link rel="stylesheet" href="css/stage.css">
 <link rel="stylesheet" href="css/authorising.css">
+<link rel="stylesheet" href="css/approved.css">
 </head>
 <body>
 
@@ -103,6 +104,11 @@
     <div class="lanelight__foot"></div>
   </div>
 
+  <!-- Phase 3a. The camera looks down at the counter surface, so the inside
+       of a drawer is never visible from here - it is implied by a lit slot,
+       the rake of light, and the whole set taking the bang. -->
+  <div class="drawer" aria-hidden="true"></div>
+
   <div class="lane">
 
     <!-- Receipt printer. In later steps this is the error channel. -->
@@ -143,6 +149,13 @@
                 <span class="pos__clock">09:41</span>
                 <span class="pos__net" id="pos-net">Online</span>
               </div>
+              <div class="pos__user">
+                <div class="pos__who">
+                  <strong id="home-name">Operator</strong>
+                  <span id="home-role">Signed on</span>
+                </div>
+                <button type="button" class="signout" id="signout">Sign out</button>
+              </div>
             </header>
 
             <div class="pos__body">
@@ -150,6 +163,7 @@
               <!-- The task comes first in the DOM. `order` puts the ambient
                    sale back on the left visually; it holds nothing focusable,
                    so tab order is untouched. -->
+              <div class="pos__pane">
               <section class="signin" aria-labelledby="signin-title">
                 <h1 class="signin__title" id="signin-title">Sign in to till</h1>
                 <p class="signin__sub">Use your Counterpoint account.</p>
@@ -204,6 +218,20 @@
                   <p class="signin__status" id="signin-status" role="status" aria-live="polite">Demo · dan@counterpoint.co / openlane</p>
                 </form>
               </section>
+
+              <section class="home" aria-labelledby="home-title" hidden>
+                <div class="home__head">
+                  <h2 class="home__title" id="home-title">New sale</h2>
+                  <span class="home__shift" id="home-shift">09:41</span>
+                </div>
+                <!-- A shell, and it says so by not pretending to be clickable. -->
+                <div class="home__grid" aria-hidden="true">
+                  <span>Produce</span><span>Bakery</span><span>Drinks</span>
+                  <span>Chilled</span><span>Household</span><span>More</span>
+                </div>
+                <div class="home__pay" aria-hidden="true">Pay <b id="home-total">£0.00</b></div>
+              </section>
+              </div>
 
               <section class="sale" aria-labelledby="sale-title">
                 <h2 class="sale__head" id="sale-title">Current sale <span class="sale__held">Held</span></h2>
@@ -308,6 +336,7 @@
   <div class="belt__rail belt__rail--front"></div>
 </div>
 
+<div class="rake" aria-hidden="true"></div>
 <div class="tone-wash" aria-hidden="true"></div>
 <div class="vignette" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>

@@ -43,6 +43,10 @@ worth seeing, and the lock is held server-side, so reloading does not escape it.
   of receipt paper feeding across as the progress indicator - no spinner
   anywhere. The belt stops and the lane light turns amber while the server
   decides. Then green, or red.
+- **On approval**, the drawer bangs, warm light rakes up across the counter,
+  and the sign-in pane is pulled away like a receipt to reveal the till that
+  was already underneath. The sale that was running by itself is now yours.
+- **Sign out** from the header to run the whole thing again.
 - **F1** recalls the password from anywhere on the page.
 
 ## Development
@@ -68,8 +72,8 @@ reload. No build step, no dependencies, vanilla ES modules.
 | 5 | Input choreography — **Phase 1 complete** | done |
 | 6 | Auth service | done |
 | 7 | Authorising — **Phase 2 complete** | done |
-| 8 | Approved — Phase 3a | next |
-| 9 | Declined — Phase 3b | |
+| 8 | Approved — **Phase 3a complete** | done |
+| 9 | Declined — Phase 3b, plus the sign-on receipt | next |
 | 10 | Supervisor lockout — Phase 3c | |
 | 11 | Sound | |
 | 12 | Polish, responsive, contrast audit | |

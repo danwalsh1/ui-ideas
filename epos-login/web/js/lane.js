@@ -108,6 +108,9 @@ export class Lane {
     // When held, goods run up to the scanner and wait rather than crossing
     // it. The lane keeps feeding; it just stops serving.
     this.hold = false;
+    // Set by whoever needs the running figure. The app shell uses it so its
+    // Pay button tracks the live sale rather than a snapshot taken at sign-on.
+    this.onTotal = null;
     this.running = false;
     this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -147,6 +150,13 @@ export class Lane {
     };
     requestAnimationFrame(loop);
   }
+
+  /**
+   * The sale total as displayed. Anything that needs this must ask the lane:
+   * reading it off the odometer element returns every digit strip in every
+   * cell, not the value showing through the window.
+   */
+  get totalText() { return money(this.totalPence); }
 
   /** The stage drives these. 1 is the open lane, 0 halts the belt. */
   setSpeedScale(k) { this.speedTarget = SPEED * Math.max(0, k); }
@@ -296,6 +306,7 @@ export class Lane {
     const n = this.list.children.length;
     this.count.textContent = n === 1 ? '1 item' : `${n} items`;
     setOdometer(this.total, money(this.totalPence));
+    this.onTotal?.(this.totalText);
   }
 
   _resetSale() {

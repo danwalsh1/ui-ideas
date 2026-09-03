@@ -535,14 +535,14 @@
   transform: translateY(-2px);
   transition: opacity 260ms var(--ease), transform 260ms var(--ease);
 }
-:root:not([data-state="idle"]) .sale__held { opacity: 1; transform: none; }
+:root:not([data-state="idle"]):not([data-state="approved"]) .sale__held { opacity: 1; transform: none; }
 
 .sale__list,
 .sale__foot {
   transition: opacity 320ms var(--ease), transform 320ms var(--ease);
 }
-:root:not([data-state="idle"]) .sale__list,
-:root:not([data-state="idle"]) .sale__foot {
+:root:not([data-state="idle"]):not([data-state="approved"]) .sale__list,
+:root:not([data-state="idle"]):not([data-state="approved"]) .sale__foot {
   opacity: 0.48;
   transform: translateY(3px);
 }

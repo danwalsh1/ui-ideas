@@ -12,6 +12,7 @@
 import { Badge } from './badge.js';
 import { login, probe, state as authState } from './auth.js';
 import { runHandoff } from './handoff.js';
+import { runApproved, runSignOut } from './approved.js';
 
 const $ = (sel) => document.querySelector(sel);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -24,7 +25,7 @@ const FORM_STATES = ['idle', 'held', 'entering'];
 // if the service answers instantly.
 const AUTH_MIN_MS = 2000;
 
-export function initForm({ stage }) {
+export function initForm({ stage, lane }) {
   const form = $('#signin-form');
   const email = $('#email');
   const password = $('#password');
@@ -200,8 +201,8 @@ export function initForm({ stage }) {
     if (result.ok) {
       stage.set('approved');
       setStatus(`Signed in as ${result.user.name}. ${result.user.role}.`, 'ok');
-      // Step 8 opens the drawer and hands over to the app. Stop here, and
-      // stay busy - there is nothing to submit again.
+      await runApproved({ user: result.user, lane, reduced });
+      // Signed on. Nothing to submit again until they sign out.
       return;
     }
 
@@ -228,6 +229,20 @@ export function initForm({ stage }) {
     stage.set('idle');
     sync();
     password.focus();
+  });
+
+  /* ---- Sign out ------------------------------------------------------- *
+     The one real control the app shell carries, and the only way back to
+     the login without a reload. */
+  $('#signout')?.addEventListener('click', () => {
+    runSignOut({ badge });
+    password.value = '';
+    email.value = '';
+    setStatus('');
+    busy = false;
+    submit.disabled = false;
+    stage.set('idle');
+    setTimeout(() => email.focus(), 320);
   });
 
   /* ---- Link state ---------------------------------------------------- */
