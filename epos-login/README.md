@@ -48,6 +48,10 @@ worth seeing, and the lock is held server-side, so reloading does not escape it.
   was already underneath. The sale that was running by itself is now yours.
 - **Sign out** from the header to run the whole thing again.
 - **F1** recalls the password from anywhere on the page.
+- **Leave it alone for a minute.** The screen dims to the mark and the shop
+  carries on behind it - the belt still runs, the lane light stays green, and
+  when you press a key the total has gone up. Any input wakes it; the keystroke
+  is never swallowed. `?attract=8` runs it at eight seconds instead of sixty.
 - **F4, or the Sound key in the footer, turns the sound on.** It is off until
   you ask, and everything is synthesised at runtime - there are no audio files
   to download. The scanner beep is the anchor: once you have heard it a dozen
@@ -64,6 +68,7 @@ reload. No build step, no dependencies, vanilla ES modules.
 | `?debug` | State switcher panel; number keys `1`–`7` also work |
 | `?state=authorising` | Jump straight to a stage state |
 | `?sound` | Arm the sound on the first click or keypress |
+| `?attract=8` | Run attract mode at eight seconds; `?attract=off` disables it |
 
 `window.stage`, `window.lane` and `window.sound` are exposed for tuning from
 the console.
@@ -86,4 +91,4 @@ how its balance was set - see the gain budget comment in `web/js/sound.js`.
 | 9 | Declined — **Phase 3b complete**, plus the sign-on receipt | done |
 | 10 | Supervisor lockout — **Phase 3c complete** | done |
 | 11 | Sound — **synthesised kit behind the toggle** | done |
-| 12 | Polish, responsive, contrast audit | next |
+| 12 | Polish, responsive tiers, attract mode, audits | done |

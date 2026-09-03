@@ -569,6 +569,37 @@ reader's status word always say the same thing the motion does.
 The login must be completable at every size with no horizontal scrolling and no
 reliance on the scene being visible.
 
+**What was built, and the one that mattered.** The tiers above are width-based,
+and the trap is that a landscape phone is *wide and short*. The narrow tier
+switched the terminal to portrait - taller than it is wide - and its own comment
+said "a landscape screen at this width is too short to hold a vertical form",
+which was exactly right and exactly what the query then failed to exclude. A
+740x360 phone matched it, took a terminal 536px tall in a 360px viewport, and
+put the Sign in button 42px below a page that cannot scroll. The login was
+impossible to complete on a landscape phone.
+
+So the tiers are guarded by height as well: the portrait tier requires
+`min-height: 620px`, and a separate short-viewport tier caps the terminal
+against `vh` at any width. On a short screen the badge and the ambient sale go -
+both are decoration, and they are the difference between a form that fits and a
+form that scrolls. The sale becomes a summary bar on narrow portrait rather than
+disappearing, because the running total is the one thing on that pane still
+worth saying when there is no room to list it.
+
+The printer now **stays** below 761px. It used to be hidden, which took the
+entire declined and locked error channel with it - a mobile visitor could fail
+five times and never see a receipt. It is also wider on that tier than the
+desktop proportion, because the paper is 21 characters across whatever size the
+printer is, and at the desktop ratio the type would land near 4px.
+
+Two bugs found the same way, both the same shape: an element hidden by a media
+query still answers `querySelector`, so its geometry comes back zero. The lane
+kept running on a zero-width belt and flew a price chip into the top-left corner
+of the screen every four seconds on every phone; and the badge hand-off flew to
+the viewport origin and bounced there, because the scanner and reader it aims at
+were `display: none`. Both now test whether an element is *rendered* rather than
+whether it exists.
+
 ---
 
 ## Technical approach

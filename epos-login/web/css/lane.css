@@ -224,12 +224,38 @@
  * Reduced motion: the belt stops entirely. The sale still fills, just
  * without anything travelling - see lane.js.
  * ------------------------------------------------------------------ */
+/* The spec says the belt SLOWS and items CROSS-FADE - it does not say the
+   lane disappears. Deleting it removed the scanner, the bag and the goods
+   themselves, which is information rather than motion, and the one rule the
+   accessibility section sets is that the sequence never depends on animation
+   to convey state. The belt stays; the travel is what goes. */
 @media (prefers-reduced-motion: reduce) {
-  .lane-belt { display: none; }
+  .belt__seam { display: none; }
+  .item { transition: opacity 420ms linear; }
+  .scanner.is-reading .scanner__beam { animation: none; opacity: 0.55; }
 }
 
 /* Narrow viewports go portrait and give the frame to the terminal; the
    lane returns properly in the responsive pass at step 12. */
-@media (max-width: 760px) {
+@media (max-width: 760px), (max-height: 620px) {
   .lane-belt { display: none; }
 }
+
+/* ------------------------------------------------------------------ *
+ * On the receipt at narrow widths.
+ *
+ * The spec asks for the paper to "slide up from the bottom edge rather
+ * than out of a printer" on mobile, and the printer used to be hidden
+ * below 761px - which took the entire declined and locked error channel
+ * with it. The fix is the printer STAYING (see scene.css), not the paper
+ * being re-hosted: .printer carries a transform, so it is the containing
+ * block for any fixed-position descendant, and a bottom-of-viewport
+ * receipt cannot be reached from inside it without moving the element out
+ * of the printer in the markup. Keeping the printer is the smaller change
+ * and the more honest picture - the paper still comes out of the machine
+ * that printed it.
+ *
+ * On a landscape phone the printer is genuinely gone, and there the status
+ * plate on the screen carries the message. It always did: the receipt is
+ * decoration, and the spec says so.
+ * ------------------------------------------------------------------ */

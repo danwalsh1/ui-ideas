@@ -111,16 +111,26 @@ body.is-jolt .lane-belt { animation: jolt 420ms cubic-bezier(0.36, 0.07, 0.19, 0
 
 /* Pulled away like a receipt: up, out, and slightly askew as it goes. */
 .signin {
+  visibility: visible;
   transition:
     translate 620ms cubic-bezier(0.5, 0, 0.72, 0),
     rotate 620ms cubic-bezier(0.5, 0, 0.72, 0),
-    opacity 420ms linear 200ms;
+    opacity 420ms linear 200ms,
+    visibility 0s linear 0s;
 }
+
+/* visibility, not just opacity. Pulled away, the form was still in the
+   accessibility tree behind the app - including the page's only h1 and both
+   credential fields - so a screen reader user who had just signed in could
+   still tab into a sign-in form that was no longer on screen. The delay
+   holds it readable for the length of the pull-away and then takes it out. */
 .pos.is-home .signin {
   translate: 0 -112%;
   rotate: -1.6deg;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
+  transition-delay: 0s, 0s, 200ms, 620ms;
 }
 
 /* ------------------------------------------------------------------ *
@@ -185,9 +195,9 @@ body.is-jolt .lane-belt { animation: jolt 420ms cubic-bezier(0.36, 0.07, 0.19, 0
   text-align: center;
 }
 .home__grid span:first-child {
-  border-color: hsl(232 60% 74% / 0.6);
+  border-color: color-mix(in oklab, var(--brand) 45%, #FFFFFF);
   background: linear-gradient(180deg, #FFFFFF, var(--brand-soft));
-  color: var(--brand);
+  color: var(--brand-ink);
 }
 
 .home__pay {
@@ -247,8 +257,8 @@ body.is-jolt .lane-belt { animation: jolt 420ms cubic-bezier(0.36, 0.07, 0.19, 0
   cursor: pointer;
   transition: border-color 160ms, color 160ms, background 160ms;
 }
-.signout:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
-.signout:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.signout:hover { border-color: var(--brand-ink); color: var(--brand-ink); background: var(--brand-soft); }
+.signout:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* ------------------------------------------------------------------ *
  * Reduced motion: it still opens, it just does not shake or rake
@@ -256,7 +266,18 @@ body.is-jolt .lane-belt { animation: jolt 420ms cubic-bezier(0.36, 0.07, 0.19, 0
 @media (prefers-reduced-motion: reduce) {
   body.is-jolt .stage,
   body.is-jolt .lane-belt { animation: none; }
-  .rake.is-on { animation: rake 700ms linear forwards; }
-  .signin { transition-duration: 200ms; }
-  .home { transition-duration: 200ms; }
+
+  /* The spec says the drawer opens WITHOUT the light rake. A 700ms rake is a
+     shorter rake, not an absent one - and a full-viewport wash of light
+     sweeping up the screen is the single largest movement in the whole piece.
+     approved.js stops adding the class as well, so nothing animates at all. */
+  .rake.is-on { animation: none; opacity: 0; }
+
+  /* And the app cross-fades in, rather than the pane travelling a full pane
+     height and rotating on the way. Shortening that to 200ms kept every pixel
+     of the movement and merely made it faster, which is the opposite of what
+     was asked for. */
+  .signin { transition: opacity 200ms linear; }
+  .pos.is-home .signin { translate: none; rotate: none; }
+  .home { transition: opacity 200ms linear; translate: none; }
 }

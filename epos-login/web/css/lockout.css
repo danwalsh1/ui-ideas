@@ -85,7 +85,7 @@
 /* Focus is moved here by script, so a ring would be noise. A keyboard user
    who Shift-Tabs back onto it still gets one. */
 .lockout:focus { outline: none; }
-.lockout:focus-visible { outline: 2px solid var(--brand); outline-offset: -0.4em; }
+.lockout:focus-visible { outline: 2px solid var(--focus); outline-offset: -0.4em; }
 
 /* ---- The edge ----------------------------------------------------- *
    The only saturated amber on the screen and the only thing on it that

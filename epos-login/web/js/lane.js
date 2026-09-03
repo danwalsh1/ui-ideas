@@ -69,6 +69,11 @@ function setOdometer(host, text) {
       row.appendChild(cell);
     }
     host.appendChild(row);
+    // Every digit cell holds all ten digits so the strip can roll, which means
+    // the raw text of this element is a wall of numerals - a screen reader
+    // read the total as "0123456789" once per column. The rolling row is
+    // decoration; the value is carried separately in text.
+    row.setAttribute('aria-hidden', 'true');
   }
   const cells = host.querySelectorAll('.od-cell');
   [...text].forEach((ch, i) => {
@@ -76,6 +81,14 @@ function setOdometer(host, text) {
     if (!cell || cell.dataset.digit === undefined) return;
     cell.firstChild.style.transform = `translateY(-${Number(ch)}em)`;
   });
+
+  let readable = host.querySelector('.od-text');
+  if (!readable) {
+    readable = document.createElement('span');
+    readable.className = 'od-text vh';
+    host.appendChild(readable);
+  }
+  readable.textContent = text;
 }
 
 /* ------------------------------------------------------------------ */
@@ -118,15 +131,37 @@ export class Lane {
     this.onScan = null;   // an item crossed the glass
     this.onBag = null;    // an item reached the bag
     this.running = false;
-    this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /* Tracked, not latched. The spec says reduced motion is "honoured and
+       runtime-toggleable", and reading the query once at construction made
+       that false everywhere: a visitor who turned the setting on watched the
+       belt carry on travelling until they reloaded. */
+    this._mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    this.reduced = this._mq.matches;
+    this._mq.addEventListener('change', (event) => {
+      this.reduced = event.matches;
+      this.restart();
+    });
 
     this._measure();
     window.addEventListener('resize', () => this._measure(), { passive: true });
   }
 
-  /* ---- geometry -------------------------------------------------- */
+  /* ---- geometry -------------------------------------------------- *
+     Rendered, not merely present. Below the narrow breakpoint the belt is
+     display: none, and querySelector still hands back the element - so every
+     rect came back zero, the scan line sat at x=0, and items "crossed" it a
+     second after spawning. The flyer that carries a scanned line into the
+     sale is position: fixed on the body, OUTSIDE the hidden belt, so it went
+     on painting: a price chip ghosting at the top-left corner of the screen
+     every four seconds on every phone, with nothing on the page to explain
+     it. Same predicate the sound kit uses for the same reason. */
+  _rendered(el) { return Boolean(el && el.getClientRects().length); }
+
   _measure() {
-    if (!this.belt) return;
+    const live = this._rendered(this.belt);
+    if (live !== this.live) this._relive(live);
+    this.live = live;
+    if (!live) { this.width = 0; return; }
     const b = this.belt.getBoundingClientRect();
     this.width = b.width;
     const s = this.scanner.getBoundingClientRect();
@@ -136,14 +171,36 @@ export class Lane {
     this.bagX = g.left - b.left;
   }
 
+  /* Crossing the breakpoint swaps which path fills the sale. Without this a
+     resize into the narrow tier would leave the travelling items behind as
+     orphans, and a resize back out would never restart the belt. */
+  _relive(live) {
+    if (this.live === undefined) return;      // first measure, nothing to swap
+    // Deferred: _measure() is mid-flight and start() measures again.
+    setTimeout(() => this.restart(), 0);
+  }
+
+  /** Tear down whichever path is filling the sale and start the right one.
+      Used when the layout crosses the breakpoint and when the user changes
+      their motion preference - both swap which loop should be running. */
+  restart() {
+    this.running = false;
+    clearTimeout(this._staticTimer);
+    for (const it of this.items) it.el.remove();
+    this.items = [];
+    this.start();
+  }
+
   /* ---- lifecycle -------------------------------------------------- */
   start() {
     if (!this.list) return;
     this._newBasket();
     this._resetSale();
 
-    if (this.reduced) { this._startStatic(); return; }
-    if (!this.belt) return;
+    // No belt to travel along - because the user asked for less motion, or
+    // because the layout is too narrow to show one. Either way the sale still
+    // fills, and the scan is still announced, from the static path.
+    if (this.reduced || !this._rendered(this.belt)) { this._startStatic(); return; }
 
     this.running = true;
     let last = performance.now();
@@ -351,6 +408,10 @@ export class Lane {
      Nothing travels and nothing rolls, but the till still works through
      a basket so the page is not simply frozen. */
   _startStatic() {
+    // The handle is kept so crossing the breakpoint, or the user turning
+    // reduced motion off, can cancel this loop before starting the other one.
+    // Without it the two run together and the sale fills twice.
+    clearTimeout(this._staticTimer);
     const tick = () => {
       if (this.spawnIndex < this.basket.length) {
         // _scan() is never reached on this path, so the scan is announced
@@ -358,15 +419,15 @@ export class Lane {
         const entry = this.basket[this.spawnIndex++];
         this._addRow(entry);
         this.onScan?.(entry);
-        setTimeout(tick, 4200);
+        this._staticTimer = setTimeout(tick, 4200);
       } else {
-        setTimeout(() => {
+        this._staticTimer = setTimeout(() => {
           this._resetSale();
           this._newBasket();
-          setTimeout(tick, 1200);
+          this._staticTimer = setTimeout(tick, 1200);
         }, 5000);
       }
     };
-    setTimeout(tick, 900);
+    this._staticTimer = setTimeout(tick, 900);
   }
 }

@@ -1,0 +1,165 @@
+/* Phase 0: attract mode - the till with its backlight down.
+
+   After sixty seconds with nobody at the counter the screen dims to the mark,
+   and the shop carries on behind it. That is the whole feature: the belt does
+   not stop, the lane light does not change, and when it wakes the total has
+   gone up. A shop does not close because a screen dimmed.
+
+   The panel lives inside .terminal__screen, whose isolation: isolate keeps it
+   under .terminal__glass - a specular sheet over a dark field is most of what
+   a dimmed screen actually looks like in a lit shop. */
+
+.attract {
+  position: absolute;
+  inset: 0;
+  /* Under the authorising takeover's 3 and the lockout's 4. Neither state is
+     eligible, so the three can never be co-visible - but if that ever stopped
+     being true, a logo must not be the thing covering a countdown. */
+  z-index: 2;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  place-items: center;
+  padding: 1.4em;
+  background:
+    radial-gradient(76% 62% at 50% 40%,
+      #1E242D 0%, #191E26 54%, var(--attract-field) 100%);
+  opacity: 0;
+  visibility: hidden;
+
+  /* Hit-testing is keyed to the attribute and never to the transition, for
+     the reason the lockout sets out at length: a transparent full-bleed
+     element left clickable over the form eats every click aimed at it, and a
+     tab that is not being rendered never finishes the fade to release it. */
+  pointer-events: none;
+
+  /* The base rule is the WAKE, and 160ms is the promise being kept. The
+     dim-in is 1400ms and is declared on the on-rule below, so the asymmetry
+     falls out of which rule is winning with no second class to toggle. */
+  transition:
+    opacity 160ms linear,
+    visibility 0s linear 160ms;
+}
+
+/* A backlight falling, not a panel appearing. Slow enough that catching it
+   half way still reads as a screen going to sleep. */
+:root[data-attract] .attract {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 1400ms var(--ease-in-out),
+    visibility 0s;
+}
+
+/* A halo, and the only place the accent appears on this screen. The mark
+   itself is painted in --attract-ink and never in --brand: a customer who
+   swaps the accent for something dark would get a logo that is invisible for
+   exactly as long as the screen is dimmed. A halo that disappears under a
+   dark accent is a halo nobody misses; a logo that disappears is a bug. */
+.attract::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 42%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--brand), transparent 70%);
+  opacity: 0.16;
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.attract__inner {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.5em;
+}
+
+/* Only the mark breathes. Breathing the wordmark with it would fade text in
+   and out, which is a legibility problem dressed as atmosphere - and a screen
+   whose words come and go reads as a fault, not as sleep. */
+.attract__mark {
+  width: 3.4em;
+  height: 3.4em;
+  color: var(--attract-ink);
+  opacity: 0.55;
+  animation: attract-breathe 5.2s var(--ease-in-out) infinite;
+}
+
+/* 5.2s is a slow human breath, about eleven a minute. Anything near a second
+   is a pulse, and a pulse on a till means a fault. Opacity and scale share
+   one keyframe so the two can never drift out of step, and the scale is 1.4%
+   - enough to see, not enough to notice the mark moving. At the bottom of the
+   range the mark still holds 4.3:1 on the field. */
+@keyframes attract-breathe {
+  0%, 100% { opacity: 0.55; scale: 1; }
+  50%      { opacity: 0.90; scale: 1.014; }
+}
+
+.attract__word {
+  margin: 0;
+  font-size: 0.98em;
+  font-weight: 650;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;            /* balance the trailing letter-space */
+  text-transform: uppercase;
+  color: var(--attract-ink);
+}
+
+/* Dimmed is not a synonym for unreadable, so the small type still clears AA
+   on the field rather than being dropped to an atmospheric grey. */
+.attract__hint {
+  margin: 0.15em 0 0;
+  font-family: var(--mono);
+  font-size: 0.7em;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  text-transform: uppercase;
+  color: var(--attract-ink-soft);
+}
+
+.attract__foot {
+  align-self: end;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.68em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--attract-ink-soft);
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow terminal. Same call the lockout makes: the tracking gives
+ * first, because nothing here needs to reflow.
+ * ------------------------------------------------------------------ */
+@container screen (max-width: 460px) {
+  .attract { padding: 1em; }
+  .attract__mark { width: 2.8em; height: 2.8em; }
+  .attract__word { letter-spacing: 0.18em; text-indent: 0.18em; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: the dim stays, the breath goes.
+ *
+ * The dim is not decoration - it is what attract mode IS. Removing it
+ * leaves the feature missing rather than the animation removed, and an
+ * unattended terminal that never dims is not a reduced-motion variant of
+ * anything. What goes is the breath, held at the TOP of its range: a mark
+ * pinned at its dimmest reads as a screen that has given up, which is the
+ * same call the lockout makes for its blinking edge.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .attract__mark { animation: none; opacity: 0.9; }
+
+  /* The full state selector, not a bare .attract. A media query carries no
+     specificity of its own, so the (0,2,0) on-rule above would keep its
+     1400ms fade for exactly the user who asked it not to. Both transitions
+     are written out in full rather than overriding transition-duration,
+     which would leave the visibility delay behind at the old value. */
+  .attract { transition: opacity 140ms linear, visibility 0s linear 140ms; }
+  :root[data-attract] .attract { transition: opacity 140ms linear, visibility 0s; }
+}

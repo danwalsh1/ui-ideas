@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="css/approved.css">
 <link rel="stylesheet" href="css/printer.css">
 <link rel="stylesheet" href="css/lockout.css">
+<link rel="stylesheet" href="css/attract.css">
 </head>
 <body>
 
@@ -197,6 +198,14 @@
                   </div>
 
                   <p class="caps" id="caps" hidden>Caps Lock is on</p>
+                  <!-- The visible warning above is hidden with the hidden
+                       attribute, which takes it out of the accessibility tree
+                       entirely - so it announced nothing, to anyone, ever. The
+                       spec asks for Caps Lock to be announced, so a live
+                       region carries the same words separately. It holds text
+                       only while the key is on, so it is silent the rest of
+                       the time rather than sitting there readable. -->
+                  <p class="vh" id="caps-live" role="status" aria-live="polite"></p>
 
                   <!-- Decoration built from the fields above. It assembles in
                        step 5 and is never itself an input. -->
@@ -269,6 +278,34 @@
               <span class="fkeys__spacer" aria-hidden="true"></span>
               <button type="button" class="fkey" id="fkey-sound" aria-pressed="false" hidden><b>F4</b> Sound</button>
               <span class="fkeys__settings" aria-hidden="true">Settings</span>
+            </div>
+
+            <!-- Phase 0. Sixty seconds unattended and the backlight drops,
+                 the way a real till's does.
+
+                 Not a state. data-state is what the whole counter is doing,
+                 and the counter is doing exactly what it was doing a second
+                 ago - the belt is still running behind this, the lane light
+                 is still green, and the total is still climbing. One surface
+                 changes, so one attribute drives it, and stage.js never hears
+                 about it.
+
+                 aria-hidden, and it never takes focus. A dimmed screen is a
+                 lighting change; there is no such event for a screen reader,
+                 and announcing one would invent a mode the listener is not in
+                 and cannot leave. Everything underneath stays enabled and
+                 stays in the tab order - a Tab is one of the things that
+                 wakes it. -->
+            <div class="attract" aria-hidden="true">
+              <div class="attract__inner">
+                <svg class="attract__mark"><use href="#cp-mark"/></svg>
+                <p class="attract__word">Counterpoint</p>
+                <!-- Names the input path that is guaranteed lossless: a key
+                     lands where it was always going to land. A pointer does
+                     not, and this does not offer it one. -->
+                <p class="attract__hint">Press any key</p>
+              </div>
+              <p class="attract__foot">Till 04 &middot; Lane open</p>
             </div>
 
             <!-- Phase 2. The status is announced through the live region in

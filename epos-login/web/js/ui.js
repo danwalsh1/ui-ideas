@@ -48,7 +48,11 @@ export function initForm({ stage, lane, sound = null }) {
   printer.onTear = () => sound?.printerTear();
 
   const idleStatus = status.textContent;
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Tracked rather than latched, so turning the setting on mid-visit takes
+  // effect on the next sequence instead of on the next reload.
+  const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let reduced = motionMq.matches;
+  motionMq.addEventListener('change', (event) => { reduced = event.matches; });
   let busy = false;
   let lockTimer = null;
 
@@ -63,6 +67,10 @@ export function initForm({ stage, lane, sound = null }) {
     // #forgot is an anchor and cannot be disabled. Reaching it under an
     // opaque takeover would be reaching through the screen.
     forgot.tabIndex = live ? 0 : -1;
+    // Same treatment for the sound key: it stays clickable and F4 stays bound
+    // (killing the sound has to work under a takeover), but tabbing to it
+    // while it is behind an opaque panel would put focus somewhere invisible.
+    if (soundKey) soundKey.tabIndex = live ? 0 : -1;
     // Any way out of locked - the lock expiring, signing out, the debug
     // switcher - cancels the countdown, so it can never fire later and stomp
     // whatever state the counter has moved on to.
@@ -145,10 +153,14 @@ export function initForm({ stage, lane, sound = null }) {
   /* ---- Caps Lock ---------------------------------------------------- *
      Checked on both fields: a capitalised address is harmless, but people
      often notice the warning there first and fix it before the password. */
+  const capsLive = $('#caps-live');
+
   function checkCaps(event) {
     const on = typeof event.getModifierState === 'function'
       && event.getModifierState('CapsLock');
+    if (on === !caps.hidden) return;        // announce the change, not the key
     caps.hidden = !on;
+    if (capsLive) capsLive.textContent = on ? 'Caps Lock is on' : '';
   }
   for (const el of [email, password]) {
     el.addEventListener('keydown', checkCaps);
@@ -161,7 +173,10 @@ export function initForm({ stage, lane, sound = null }) {
       if (stage.is(...FORM_STATES)) sound?.key(event);
     });
   }
-  password.addEventListener('blur', () => { caps.hidden = true; });
+  password.addEventListener('blur', () => {
+    caps.hidden = true;
+    if (capsLive) capsLive.textContent = '';
+  });
 
   /* ---- F1 Recall ----------------------------------------------------- *
      The only function key that does anything yet, so the only one rendered

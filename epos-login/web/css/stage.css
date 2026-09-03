@@ -242,7 +242,7 @@
   :root[data-state="authorising"] .lanelight__face::after { opacity: 0.25; }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (max-height: 620px) {
   .lanelight { display: none; }
 }
 

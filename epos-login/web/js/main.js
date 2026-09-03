@@ -5,6 +5,7 @@ import { initForm } from './ui.js';
 import { Lane } from './lane.js';
 import { Stage } from './stage.js';
 import { SoundKit } from './sound.js';
+import { initAttract } from './attract.js';
 
 const lane = new Lane();
 lane.start();
@@ -19,6 +20,10 @@ const stage = new Stage({ lane });
 stage.on((name) => sound.setState(name));
 initForm({ stage, lane, sound });
 
+// Step 12. Mounted before the first stage.set so the boot transition arms it -
+// including a ?state= jump into locked, which must not arm it at all.
+const attract = initAttract({ stage });
+
 // An AudioContext keeps running in a hidden tab while the scene's frame loop
 // starves, so the room would play on over a frozen set.
 document.addEventListener('visibilitychange', () => sound.setVisible(!document.hidden));
@@ -32,6 +37,7 @@ stage.set(params.get('state') || 'idle');
 window.lane = lane;
 window.stage = stage;
 window.sound = sound;
+window.attract = attract;
 
 if (params.has('debug')) {
   import('./debug.js').then((m) => m.mount(stage)).catch(() => {});

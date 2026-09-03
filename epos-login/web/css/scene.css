@@ -346,15 +346,79 @@ body {
 /* Narrow tier. Full responsive work is step 12; this is enough that the set
    is not obviously broken on a phone - the terminal takes the frame and the
    counter rises to meet it rather than stranding a wall of empty space. */
-@media (max-width: 760px) {
-  /* Portrait. A landscape screen at this width is too short to hold a
-     vertical form, and plenty of real POS units are portrait tablets. */
+/* ------------------------------------------------------------------ *
+ * Tablet. The terminal becomes the frame and the peripherals close in,
+ * but the printer STAYS - the receipt is the whole error channel, and a
+ * declined sign-in with nothing to show for it is the feature missing
+ * rather than the layout adapting.
+ * ------------------------------------------------------------------ */
+@media (max-width: 1000px) and (min-width: 761px) {
+  :root {
+    --tw: min(62vw, 560px);
+    --lane-base: clamp(110px, 19vh, 190px);
+  }
+  .printer { width: calc(var(--tw) * 0.30); }
+}
+
+/* ------------------------------------------------------------------ *
+ * Portrait phone and portrait tablet.
+ *
+ * The min-height guard is the whole point of this rule. Its predecessor
+ * was width-only, and its own comment said "a landscape screen at this
+ * width is too short to hold a vertical form" - which was exactly right,
+ * and exactly what the query then failed to exclude. A 740x360 landscape
+ * phone matched it, took a terminal 1.16 times taller than it is wide,
+ * and put the Sign in button 42px below a viewport that cannot scroll,
+ * because html is overflow: hidden. The login was impossible to complete.
+ * ------------------------------------------------------------------ */
+@media (max-width: 760px) and (min-height: 620px) {
+  /* Portrait. Plenty of real POS units are portrait tablets. */
   :root {
     --tw: min(92vw, 420px);
     --th: calc(var(--tw) * 1.16);
     --lane-base: clamp(56px, 15vh, 132px);
   }
-  .printer, .reader { display: none; }
+  .reader { display: none; }
+  /* Wider than the desktop proportion, because the paper is 21 characters
+     across whatever the printer is: at the desktop's 0.235 the type would
+     land near 4px here. The printer is the only peripheral left on this
+     tier and it has the room. */
+  .printer { width: calc(var(--tw) * 0.44); }
   .room { inset: 0 0 58% 0; }
   .counter { top: 42%; height: 150vh; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Short viewports, at any width: a landscape phone, a half-height
+ * window, a laptop with the devtools open. Nothing here is about width,
+ * so no width-based tier can catch it. The terminal is capped by height
+ * as well, and the counter line comes up to meet it.
+ * ------------------------------------------------------------------ */
+@media (max-height: 620px) {
+  :root {
+    --tw: clamp(260px, min(52vw, 112vh), 700px);
+    --th: calc(var(--tw) * 0.70);
+    --lane-base: clamp(38px, 11vh, 120px);
+  }
+  .room { inset: 0 0 46% 0; }
+  .counter { top: 54%; }
+}
+
+/* Narrow AND short - the landscape phone. The set falls away entirely and
+   the terminal is the page, because there is no room for anything else. */
+@media (max-width: 760px) and (max-height: 620px) {
+  :root { --tw: clamp(240px, min(64vw, 104vh), 520px); }
+  .printer, .reader { display: none; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: no parallax and no tilt.
+ *
+ * scene.css carried no reduced-motion block at all, so the two things the
+ * accessibility section names first - "no terminal tilt, no parallax" -
+ * were the two it never honoured.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .stage, .counter, .room { transition: none; }
+  .grain { animation: none; }
 }

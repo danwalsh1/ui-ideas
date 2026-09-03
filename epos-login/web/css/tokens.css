@@ -17,14 +17,58 @@
   --ink-faint: #64707F;   /* AA on --surface and the function strip */
   --rule: #E2E6EC;
 
-  /* ---- Brand: the one value a customer swaps -------------------- */
+  /* ---- Brand: the one value a customer swaps -------------------- *
+     One hex, and everything brand-tinted derives from it. The derived
+     values were frozen hexes until step 12, which quietly broke the
+     one-file promise: swapping the accent left indigo behind on the submit
+     button's gradient, the field's focus glow and the badge chip. */
   --brand: #4356E0;
-  --brand-soft: #E8EAFC;
+  --brand-soft: color-mix(in oklab, var(--brand) 12%, #FFFFFF);
+  --brand-lift: color-mix(in oklab, var(--brand) 82%, #FFFFFF);
+  --brand-shade: color-mix(in oklab, var(--brand) 55%, #101418);
+  --brand-glow: color-mix(in srgb, var(--brand) 18%, transparent);
+
+  /* Accent as TEXT, on white or on --brand-soft. The raw accent cannot be
+     trusted here: a near-white yellow is 1.3:1 on white, so a link painted in
+     it would vanish. Mixed half-way to ink it stays recognisably the brand
+     colour and clears AA whatever the customer picks: measured across a
+     near-white yellow, a green, a red, an indigo and a near-black, the worst
+     case is 4.9:1 on white and 4.8:1 on --brand-soft. */
+  --brand-ink: color-mix(in oklab, var(--brand) 50%, #0E1116);
+
+  /* Text ON a brand fill - the submit button, and nothing else. This is the
+     one value a light accent has to change, and it is called out rather than
+     derived because CSS cannot yet branch on a colour's luminance: there is
+     no contrast-color() to lean on. White is right for any accent below
+     roughly 0.35 relative luminance, which covers most brand colours; above
+     that, set this to #101418 and the button reads correctly again. */
+  --brand-on: #FFFFFF;
+
+  /* The focus ring is deliberately NOT the accent. 2.4.11 wants 3:1 against
+     the surface, and a customer is free to choose a near-white yellow or a
+     near-black - either of which makes an accent-coloured ring invisible on
+     one of the two grounds it has to work on. Ink carries 16.8:1 on the
+     screen and 15.7:1 on the lockout's amber field, whatever the brand does.
+     The accent still fills; it just no longer has to also be legible. */
+  --focus: var(--ink);
 
   /* ---- Semantics. Never used for brand, never mixed with it. ---- */
   --approved: #16A45A;
   --declined: #D8332F;
   --pending: #E8930C;
+
+  /* ---- Attract: the screen with its backlight down ---------------
+     The one dark surface in a light-theme-only product, and it is not a
+     theme. A white LCD at ten percent backlight is dark grey - dimming is
+     what this is, and darkness is what dimming looks like. It is gone in
+     160ms and it never appears while anyone is typing.
+
+     Both inks are fixed rather than derived from --brand: a customer who
+     picks a dark accent must not end up with a logo that is invisible for
+     exactly as long as the screen is dimmed. */
+  --attract-field: #171C23;
+  --attract-ink: #C9D2DD;        /* 11.3:1 on the field */
+  --attract-ink-soft: #808B98;   /*  5.0:1 - small type still clears AA */
 
   /* ---- Light rig ------------------------------------------------
      One key light, upper left. Every shadow in the scene falls down

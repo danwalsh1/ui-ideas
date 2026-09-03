@@ -62,6 +62,14 @@ export async function runHandoff({ badgeEl, scannerEl, glassEl, readerEl, slotEl
   const from = badgeEl.getBoundingClientRect();
   if (!from.width) return;
 
+  // The scanner and the reader are hidden on narrow layouts, and a hidden
+  // element still answers querySelector. Their rects come back zero, so the
+  // badge would fly to the top-left corner of the viewport, bounce there for
+  // the read, and sink into nothing - two and a half seconds of visible
+  // garbage over the one pause the sequence is built around. The badge itself
+  // is never hidden, so the check above does not catch it.
+  if (!glassEl.getClientRects().length || !slotEl.getClientRects().length) return;
+
   // Card proportions, not the holder's. The holder is a wide slot because
   // that is the shape the pane gives it; once it is out and in the air it
   // has to read as a staff badge. It fades in on the lift, so the change

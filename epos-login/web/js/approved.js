@@ -40,9 +40,13 @@ export async function runApproved({ user, lane, reduced, onDrawer }) {
   // The bang.
   drawer?.classList.add('is-open');
   onDrawer?.(1);
-  rake?.classList.remove('is-on');
-  void rake?.offsetWidth;                 // restart the flare
-  rake?.classList.add('is-on');
+  // The spec is explicit that the drawer opens without the light rake, so the
+  // class never goes on rather than going on and being neutered in CSS.
+  if (!reduced) {
+    rake?.classList.remove('is-on');
+    void rake?.offsetWidth;               // restart the flare
+    rake?.classList.add('is-on');
+  }
   if (!reduced) {
     document.body.classList.add('is-jolt');
     setTimeout(() => document.body.classList.remove('is-jolt'), 440);
