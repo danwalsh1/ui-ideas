@@ -192,7 +192,7 @@
                   </div>
 
                   <div class="signin__row">
-                    <a class="link" href="#recall">Forgot password?</a>
+                    <a class="link" id="forgot" href="#recall">Forgot password?</a>
                   </div>
 
                   <button type="submit" class="submit">Sign in</button>
@@ -200,7 +200,7 @@
               </section>
 
               <section class="sale" aria-labelledby="sale-title">
-                <h2 class="sale__head" id="sale-title">Current sale</h2>
+                <h2 class="sale__head" id="sale-title">Current sale <span class="sale__held">Held</span></h2>
                 <ol class="sale__list">
                   <li><span class="sale__name">Oat milk 1L</span><span class="sale__price">£1.85</span></li>
                   <li><span class="sale__name">Sourdough loaf</span><span class="sale__price">£3.20</span></li>
@@ -215,15 +215,16 @@
 
             </div>
 
-            <!-- Chrome, not controls. These do nothing yet, so they are inert
-                 text hidden from assistive tech rather than buttons that go
-                 nowhere. They become real controls in step 5. -->
-            <div class="fkeys" aria-hidden="true">
-              <span><b>F1</b> Recall</span>
-              <span><b>F2</b> Support</span>
-              <span><b>F3</b> Language</span>
-              <span class="fkeys__spacer"></span>
-              <span>Settings</span>
+            <!-- F1 is real now: it recalls the password, which is what
+                 Recall means on a till. The rest still do nothing, so they
+                 stay inert text hidden from assistive tech rather than
+                 buttons that go nowhere. -->
+            <div class="fkeys">
+              <button type="button" class="fkey" id="fkey-recall"><b>F1</b> Recall</button>
+              <span aria-hidden="true"><b>F2</b> Support</span>
+              <span aria-hidden="true"><b>F3</b> Language</span>
+              <span class="fkeys__spacer" aria-hidden="true"></span>
+              <span aria-hidden="true">Settings</span>
             </div>
 
           </div>

@@ -250,12 +250,16 @@ waiting for you.
 **The staff badge assembles.** Below the two fields sits an empty badge holder.
 As you type, it fills in — and this is the object the whole sequence turns on.
 
-- **Email → the barcode.** A live Code 128 barcode builds across the badge, a
-  group of bars per character. Set B covers every printable ASCII character, so
-  an address encodes honestly rather than decoratively. As the address grows the
-  module width narrows the way a real label does, floored at a legible minimum;
-  past that the badge scrolls the barcode rather than shrinking it into mush.
-  The address prints along the badge in monospace as you go.
+- **Email → the barcode.** A live barcode builds across the badge, a group of
+  bars per character, drawn in the grammar of Code 128: quiet zone, start
+  guard, eleven-module character cells, a check cell and a stop guard. It is a
+  faithful *rendering* rather than a scannable symbol - real Code 128 needs its
+  107-entry pattern table, and shipping an unverified one would be worse than
+  saying so plainly. The bars are fully deterministic: the same address always
+  draws the same code. As the address grows the module width narrows the way a
+  real label does, floored at a legible minimum; past that the badge scrolls
+  the barcode rather than shrinking it into mush. The address prints along the
+  badge in monospace as you go.
 - **Password → the chip.** The badge's gold chip contacts wake and a holographic
   security band starts sweeping the laminate. Deliberately *length-blind*: the
   contacts complete their cycle within the first few characters and then simply

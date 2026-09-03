@@ -1,7 +1,7 @@
 // Entry point: form affordances, the ambient lane, and the stage that both
 // of them will answer to from step 5 onward.
 
-import './ui.js';
+import { initForm } from './ui.js';
 import { Lane } from './lane.js';
 import { Stage } from './stage.js';
 
@@ -9,6 +9,7 @@ const lane = new Lane();
 lane.start();
 
 const stage = new Stage({ lane });
+initForm({ stage });
 
 // ?state=authorising jumps straight to a state, which makes reviewing a
 // single phase a link rather than a click-through.

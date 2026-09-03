@@ -117,6 +117,7 @@
   order: -1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
   padding: 1.1em 1.25em;
   border-right: 1px solid var(--rule);
@@ -252,6 +253,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
   min-height: 0;
   padding: 1.1em clamp(1.2em, 3.2cqw, 2.6em);
 }
@@ -467,7 +469,8 @@
   color: var(--ink-faint);
 }
 
-.fkeys span {
+.fkeys span,
+.fkeys .fkey {
   display: inline-flex;
   align-items: center;
   gap: 0.45em;
@@ -478,11 +481,31 @@
   letter-spacing: 0.05em;
 }
 
-.fkeys span b {
+.fkeys span b,
+.fkeys .fkey b {
   font-family: var(--mono);
   font-weight: 700;
   color: var(--ink-soft);
 }
+
+/* The one key that does something. */
+.fkeys .fkey {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 160ms, background 160ms, color 160ms;
+}
+.fkeys .fkey:hover { border-color: var(--brand); color: var(--brand); }
+.fkeys .fkey:hover b { color: var(--brand); }
+.fkeys .fkey:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+/* Arming: the active key picks up the accent as the counter wakes. */
+:root[data-state="entering"] .fkeys .fkey {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+:root[data-state="entering"] .fkeys .fkey b { color: var(--brand); }
 
 .fkeys .fkeys__spacer { flex: 1; border: 0; background: none; padding: 0; }
 
@@ -494,4 +517,106 @@
   .pos__body { grid-template-columns: 1fr; }
   .sale { display: none; }
   .fkeys span:nth-child(n + 3) { display: none; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Phase 1 - the sale suspends while someone signs in
+ * The sale is only live in idle; every other state has the till busy.
+ * ------------------------------------------------------------------ */
+.sale__held {
+  padding: 0.15em 0.45em;
+  border: 1px solid hsl(37 90% 45% / 0.45);
+  border-radius: 0.35em;
+  background: hsl(41 92% 94%);
+  color: #7A4E05;
+  font-size: 0.9em;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 260ms var(--ease), transform 260ms var(--ease);
+}
+:root:not([data-state="idle"]) .sale__held { opacity: 1; transform: none; }
+
+.sale__list,
+.sale__foot {
+  transition: opacity 320ms var(--ease), transform 320ms var(--ease);
+}
+:root:not([data-state="idle"]) .sale__list,
+:root:not([data-state="idle"]) .sale__foot {
+  opacity: 0.48;
+  transform: translateY(3px);
+}
+
+/* ------------------------------------------------------------------ *
+ * Phase 1 - the badge assembles from the fields
+ * ------------------------------------------------------------------ */
+.badge { transition: border-color 300ms var(--ease), box-shadow 300ms var(--ease); }
+.badge.is-identified {
+  border-color: hsl(232 60% 74% / 0.55);
+  box-shadow: inset 0 1px 0 #fff, 0 2px 8px -3px hsl(232 60% 50% / 0.28);
+}
+
+.badge__id { transition: color 300ms var(--ease); }
+.badge.is-identified .badge__id { color: var(--ink); }
+
+/* The barcode track. The code is drawn in pixels, so it is shifted rather
+   than scaled when it runs longer than the badge. */
+.badge__code {
+  position: relative;
+  overflow: hidden;
+  color: var(--ink);
+}
+.badge__code svg {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  height: 100%;
+  translate: var(--code-shift, 0) 0;
+  transition: translate 320ms var(--ease);
+}
+.badge.is-identified .badge__code {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* The chip wakes once and then holds. It never reports how much has been
+   typed - see badge.setCharged. */
+.badge__chip { transition: opacity 320ms var(--ease); }
+.badge.is-charged .badge__chip {
+  opacity: 1;
+  animation: chipwake 620ms var(--ease);
+}
+@keyframes chipwake {
+  0%   { opacity: 0.35; filter: brightness(1); }
+  45%  { opacity: 1;    filter: brightness(1.35); }
+  100% { opacity: 1;    filter: brightness(1); }
+}
+
+/* A holographic band sweeps the laminate while the badge is charged. */
+.badge { position: relative; overflow: hidden; }
+.badge::after {
+  content: "";
+  position: absolute;
+  inset: -60% -30%;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(72deg,
+    transparent 40%,
+    hsl(200 90% 82% / 0.35) 48%,
+    hsl(280 90% 84% / 0.32) 52%,
+    transparent 60%);
+  transition: opacity 400ms linear;
+}
+.badge.is-charged::after {
+  opacity: 1;
+  animation: holo 3.4s var(--ease-in-out) infinite;
+}
+@keyframes holo {
+  0%, 62% { transform: translateX(-46%); }
+  100%    { transform: translateX(46%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge.is-charged::after { animation: none; opacity: 0.4; }
+  .badge.is-charged .badge__chip { animation: none; }
 }

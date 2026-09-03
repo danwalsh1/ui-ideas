@@ -11,6 +11,7 @@
 export const STATES = {
   // The lane is open and serving. Nothing is waiting on anyone.
   idle: {
+    hold: false,
     belt: 1,
     reader: '',
     note: 'Lane open, sale running',
@@ -18,6 +19,7 @@ export const STATES = {
 
   // Someone has stepped up. The sale suspends but the belt keeps feeding.
   held: {
+    hold: true,
     belt: 1,
     reader: '',
     note: 'Sale held while the operator signs in',
@@ -25,6 +27,7 @@ export const STATES = {
 
   // Credentials going in. The reader wakes and waits for the hand-off.
   entering: {
+    hold: true,
     belt: 1,
     reader: 'Ready',
     note: 'Reader armed',
@@ -32,18 +35,21 @@ export const STATES = {
 
   // The pause after the card goes in. Everything in the scene holds still.
   authorising: {
+    hold: true,
     belt: 0,
     reader: 'Authorising\nDo not remove',
     note: 'Waiting on the server',
   },
 
   approved: {
+    hold: false,
     belt: 1,
     reader: 'Approved',
     note: 'Signed in',
   },
 
   declined: {
+    hold: true,
     belt: 0,
     reader: 'Declined',
     note: 'Refused, receipt printing',
@@ -53,6 +59,7 @@ export const STATES = {
   // with it - the supervisor message belongs on the terminal screen at step
   // 10. A dead reader still showing lit text would contradict itself.
   locked: {
+    hold: true,
     belt: 0,
     reader: '',
     note: 'Supervisor required',
@@ -87,7 +94,10 @@ export class Stage {
     this.root.dataset.state = name;
 
     if (this.readerText) this.readerText.textContent = state.reader;
-    if (this.lane) this.lane.setSpeedScale(state.belt);
+    if (this.lane) {
+      this.lane.setSpeedScale(state.belt);
+      this.lane.setHold(state.hold);
+    }
 
     for (const fn of this.listeners) {
       try { fn(name, previous); }

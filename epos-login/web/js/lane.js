@@ -22,6 +22,8 @@ const SPAWN_GAP = 4.1;    // seconds between goods
 const RIB_PERIOD = 26;    // must match the ribs gradient in lane.css
 const SEAM_EVERY = 12;    // seconds between belt seams
 const SETTLE = 3.6;       // pause after the last scan before the sale closes
+const QUEUE_GAP = 26;     // clear space kept between goods on the belt
+const HOLD_BACK = 24;     // how far short of the scanner a held queue stops
 
 function shuffled(list) {
   const a = [...list];
@@ -103,6 +105,9 @@ export class Lane {
     // Bumped whenever the sale resets. A line in flight when the sale closes
     // belongs to the sale that scanned it, not to the one that follows.
     this.saleId = 0;
+    // When held, goods run up to the scanner and wait rather than crossing
+    // it. The lane keeps feeding; it just stops serving.
+    this.hold = false;
     this.running = false;
     this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -117,6 +122,7 @@ export class Lane {
     this.width = b.width;
     const s = this.scanner.getBoundingClientRect();
     this.scanX = s.left + s.width / 2 - b.left;
+    this.holdX = this.scanX - s.width / 2 - HOLD_BACK;
     const g = this.bag.getBoundingClientRect();
     this.bagX = g.left - b.left;
   }
@@ -142,8 +148,9 @@ export class Lane {
     requestAnimationFrame(loop);
   }
 
-  /** The stage drives this. 1 is the open lane, 0 halts the belt. */
+  /** The stage drives these. 1 is the open lane, 0 halts the belt. */
   setSpeedScale(k) { this.speedTarget = SPEED * Math.max(0, k); }
+  setHold(on) { this.hold = Boolean(on); }
   pause() { this.running = false; }
 
   /* ---- the frame -------------------------------------------------- */
@@ -172,19 +179,27 @@ export class Lane {
       }
     }
 
-    for (let i = this.items.length - 1; i >= 0; i--) {
-      const it = this.items[i];
-      it.x += move;
+    // Forward pass, oldest first. Each item is capped by the one ahead of
+    // it, so goods never overlap, and by the hold line when the sale is
+    // suspended - which is what makes them queue instead of crossing.
+    let limit = this.hold ? this.holdX : Infinity;
+    for (const it of this.items) {
+      const w = it.el.offsetWidth;
+      it.x = Math.min(it.x + move, limit - w);
       it.el.style.transform = `translate3d(${it.x}px,0,0)`;
+      limit = Math.min(limit, it.x - QUEUE_GAP);
 
-      const centre = it.x + it.el.offsetWidth / 2;
+      const centre = it.x + w / 2;
       if (!it.scanned && centre >= this.scanX) this._scan(it);
       if (!it.bagging && centre >= this.bagX) {
         it.bagging = true;
         it.el.classList.add('is-bagging');
       }
-      if (it.x > this.width + 160) {
-        it.el.remove();
+    }
+
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      if (this.items[i].x > this.width + 160) {
+        this.items[i].el.remove();
         this.items.splice(i, 1);
       }
     }
