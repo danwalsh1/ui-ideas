@@ -79,11 +79,24 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, {});
 
   if (url.pathname === '/api/health') {
+    // The health check also reports whether THIS caller is currently locked
+    // out, because the client has no other way to find out without spending a
+    // sign-in attempt. A lockout screen that disappears on reload would be a
+    // lie: the till would look ready while the service still refuses. Reading
+    // the record neither extends the lock nor counts as an attempt, and it
+    // discloses nothing the caller does not already know - they caused it.
+    const ip = req.headers['x-real-ip'] || req.socket.remoteAddress || 'unknown';
+    const record = attempts.get(ip);
+    const left = record && record.until > Date.now()
+      ? Math.ceil((record.until - Date.now()) / 1000)
+      : 0;
     return send(res, 200, {
       ok: true,
       service: 'openlane-auth',
       uptime: Math.round(process.uptime()),
       lockAfter: LOCK_AFTER,
+      locked: left > 0,
+      retryAfter: left,
     });
   }
 
@@ -121,9 +134,25 @@ const server = http.createServer(async (req, res) => {
     await wait(Math.max(0, jitter() - (Date.now() - started)));
 
     if (!ok) {
-      const fails = (record?.fails || 0) + 1;
+      // Re-read the record. This handler has been padding for a second or two
+      // and `record` is a snapshot from before that wait, so writing back from
+      // it would let concurrent attempts from one address collapse into a
+      // single increment - and worse, the `until: 0` below would erase a lock
+      // that another request armed while this one was sleeping. Two tabs are
+      // enough to walk past LOCK_AFTER that way.
+      const settled = Date.now();
+      const live = attempts.get(ip);
+      if (live && live.until > settled) {
+        return send(res, 429, {
+          ok: false,
+          code: 'locked',
+          retryAfter: Math.ceil((live.until - settled) / 1000),
+          message: 'Terminal locked. A supervisor must unlock this till.',
+        });
+      }
+      const fails = (live?.fails || 0) + 1;
       if (fails >= LOCK_AFTER) {
-        attempts.set(ip, { fails: 0, until: Date.now() + LOCK_MS });
+        attempts.set(ip, { fails: 0, until: settled + LOCK_MS });
         return send(res, 429, {
           ok: false,
           code: 'locked',

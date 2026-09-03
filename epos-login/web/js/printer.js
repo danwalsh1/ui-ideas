@@ -29,6 +29,11 @@ const clip = (text) => String(text).slice(0, WIDTH);
 
 const now = () => new Date().toLocaleTimeString('en-GB', { hour12: false });
 
+// The screen prints the same shape, so the paper in the operator's hand and
+// the plate behind the glass quote each other character for character.
+const mmss = (s) =>
+  `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.round(s) % 60).padStart(2, '0')}`;
+
 /* ------------------------------------------------------------------ *
  * Receipt content
  * ------------------------------------------------------------------ */
@@ -49,7 +54,7 @@ export function declinedReceipt({ account, attempt, of }) {
   return rows;
 }
 
-export function lockedReceipt({ account, seconds }) {
+export function lockedReceipt({ account, seconds, ref }) {
   return [
     { brand: true },
     { text: centre('COUNTERPOINT'), cls: 'head' },
@@ -58,8 +63,11 @@ export function lockedReceipt({ account, seconds }) {
     { text: RULE, cls: 'rule' },
     { text: cols('TILL 04', now()) },
     { text: clip(account), cls: 'dim' },
+    // One reference on two surfaces. A number you can read down a phone is
+    // what turns an error message into something a manager can be told about.
+    { text: cols('REF', ref || ''), cls: 'dim' },
     { text: RULE, cls: 'rule' },
-    { text: cols('RETRY IN', `${seconds}S`) },
+    { text: cols('RETRY IN', mmss(seconds)) },
     { text: RULE, cls: 'rule' },
     { text: centre('CALL MANAGER') },
   ];

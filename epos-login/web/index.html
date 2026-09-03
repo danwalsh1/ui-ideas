@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="css/authorising.css">
 <link rel="stylesheet" href="css/approved.css">
 <link rel="stylesheet" href="css/printer.css">
+<link rel="stylesheet" href="css/lockout.css">
 </head>
 <body>
 
@@ -274,6 +275,54 @@
               </div>
               <p class="authorising__foot">Till 04 · Counterpoint</p>
             </div>
+
+            <!-- Phase 3c. Unlike the authorising takeover this one is not
+                 decoration: it takes every control on the screen away for
+                 thirty seconds, so it takes focus and names itself rather
+                 than leaning on the form's live region.
+
+                 The document is 21 characters across, which is WIDTH in
+                 printer.js, so the rule rows are the same strings the receipt
+                 prints and land edge to edge with no width to tune. The
+                 screen and the paper are one document off one machine,
+                 output twice. -->
+            <section class="lockout" id="lockout" tabindex="-1" aria-labelledby="lockout-title">
+              <span class="lockout__edge" aria-hidden="true"></span>
+
+              <div class="lockout__doc">
+                <span class="lockout__key" aria-hidden="true">
+                  <svg class="lockout__key-fill" viewBox="0 0 32 40"><path
+                    d="M16 4a8.4 8.4 0 0 1 4.8 15.3L23.4 34H8.6l2.6-14.7A8.4 8.4 0 0 1 16 4Z"/></svg>
+                  <svg class="lockout__key-line" viewBox="0 0 32 40"><path
+                    d="M16 4a8.4 8.4 0 0 1 4.8 15.3L23.4 34H8.6l2.6-14.7A8.4 8.4 0 0 1 16 4Z"/></svg>
+                </span>
+
+                <p class="lockout__rule" aria-hidden="true">=====================</p>
+                <h2 class="lockout__title" id="lockout-title">Supervisor required</h2>
+                <p class="lockout__rule" aria-hidden="true">---------------------</p>
+
+                <!-- role="timer" implies aria-live="off"; declared anyway,
+                     because a value that changes thirty times must not depend
+                     on an implication. The label is inside the element rather
+                     than an aria-label, so the timer's own content reads
+                     "Unlocks in 00:24" and script can only ever clobber the
+                     digits. -->
+                <p class="lockout__count" role="timer" aria-live="off" aria-atomic="true"
+                  ><span class="lockout__label">Unlocks in </span><span id="lockout-count">00:30</span></p>
+
+                <dl class="lockout__rows">
+                  <div><dt>Lane 04</dt><dd>Closed</dd></div>
+                  <div><dt>Reader</dt><dd>Offline</dd></div>
+                  <div><dt>Till 04</dt><dd id="lockout-clock">09:41:22</dd></div>
+                  <div><dt>Ref</dt><dd id="lockout-ref">LK-04-0941</dd></div>
+                </dl>
+
+                <p class="lockout__rule" aria-hidden="true">---------------------</p>
+                <p class="lockout__call">Call manager</p>
+              </div>
+
+              <p class="lockout__foot">Counterpoint</p>
+            </section>
 
           </div>
 

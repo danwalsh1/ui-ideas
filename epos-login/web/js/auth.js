@@ -16,17 +16,47 @@ const OFFLINE_USERS = new Map([
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export const state = { offline: false, checked: false };
+// `locked` and `retryAfter` are filled in by probe() so the page can come up
+// already locked after a reload. Without that the till would look ready while
+// the service still refuses, and the only way to discover the lock would be to
+// spend another attempt on it.
+export const state = { offline: false, checked: false, locked: false, retryAfter: 0 };
 
 let offlineFails = 0;
 let offlineUntil = 0;
+
+// The stand-in keeps its lock in sessionStorage for the same reason the service
+// reports one: a reload must not be a way out of it. Per-tab, and gone when the
+// tab is, which is the right lifetime for a demo lock.
+const LOCK_KEY = 'openlane.lock';
+try {
+  const saved = Number(sessionStorage.getItem(LOCK_KEY));
+  if (saved > Date.now()) offlineUntil = saved;
+} catch { /* storage can be denied; the lock is simply not restored */ }
+
+function rememberOfflineLock(until) {
+  offlineUntil = until;
+  try { sessionStorage.setItem(LOCK_KEY, String(until)); }
+  catch { /* nothing to do; the in-memory lock still holds for this page */ }
+}
+
+const secondsLeft = (until) => Math.max(0, Math.ceil((until - Date.now()) / 1000));
 
 export async function probe() {
   try {
     const res = await fetch('/api/health', { cache: 'no-store' });
     state.offline = !res.ok;
+    if (!state.offline) {
+      const body = await res.json().catch(() => ({}));
+      state.locked = Boolean(body.locked);
+      state.retryAfter = Number(body.retryAfter) || 0;
+    }
   } catch {
     state.offline = true;
+  }
+  if (state.offline) {
+    state.retryAfter = secondsLeft(offlineUntil);
+    state.locked = state.retryAfter > 0;
   }
   state.checked = true;
   return !state.offline;
@@ -39,7 +69,7 @@ async function offlineLogin(email, password) {
     return {
       ok: false,
       code: 'locked',
-      retryAfter: Math.ceil((offlineUntil - now) / 1000),
+      retryAfter: secondsLeft(offlineUntil),
       message: 'Terminal locked. A supervisor must unlock this till.',
     };
   }
@@ -51,7 +81,7 @@ async function offlineLogin(email, password) {
     offlineFails += 1;
     if (offlineFails >= LOCK_AFTER) {
       offlineFails = 0;
-      offlineUntil = Date.now() + LOCK_MS;
+      rememberOfflineLock(Date.now() + LOCK_MS);
       return {
         ok: false,
         code: 'locked',
@@ -69,6 +99,7 @@ async function offlineLogin(email, password) {
   }
 
   offlineFails = 0;
+  try { sessionStorage.removeItem(LOCK_KEY); } catch { /* never mind */ }
   return {
     ok: true,
     token: 'offline-' + Math.random().toString(36).slice(2, 18),

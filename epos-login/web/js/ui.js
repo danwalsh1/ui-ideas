@@ -37,6 +37,10 @@ export function initForm({ stage, lane }) {
   const submit = $('#submit');
   const status = $('#signin-status');
   const net = $('#pos-net');
+  const lockScreen = $('#lockout');
+  const lockCount = $('#lockout-count');
+  const lockClock = $('#lockout-clock');
+  const lockRef = $('#lockout-ref');
   const badge = new Badge($('.badge'));
   const printer = new Printer();
 
@@ -50,9 +54,27 @@ export function initForm({ stage, lane }) {
      than the form being made inert: inert would also hide the live region,
      and the status message is how this is announced. */
   const controls = [email, password, reveal, submit, recall].filter(Boolean);
-  stage.on((name) => {
+  stage.on((name, previous) => {
     const live = FORM_STATES.includes(name);
     for (const control of controls) control.disabled = !live;
+    // #forgot is an anchor and cannot be disabled. Reaching it under an
+    // opaque takeover would be reaching through the screen.
+    forgot.tabIndex = live ? 0 : -1;
+    // Any way out of locked - the lock expiring, signing out, the debug
+    // switcher - cancels the countdown, so it can never fire later and stomp
+    // whatever state the counter has moved on to.
+    // Any exit from locked that is not release() - the debug switcher, a
+    // ?state= jump - has to hand the form back as well as stop the clock.
+    // busy is what actually gates submit, so leaving it set behind an
+    // enabled-looking button swallows every attempt after it, silently.
+    if (previous === 'locked' && name !== 'locked') {
+      stopLock();
+      busy = false;
+      submit.disabled = !live;
+    }
+    // A debug jump into locked never calls lockdown(), so the digits are
+    // reset rather than left showing the tail of a real one.
+    if (name === 'locked' && !lockTimer && lockCount) lockCount.textContent = '00:30';
   });
 
   /* ---- Status ------------------------------------------------------- *
@@ -136,7 +158,9 @@ export function initForm({ stage, lane }) {
      The only function key that does anything yet, so the only one rendered
      as a button. It moves focus to password recovery, which is what Recall
      means on a till: bring back what was set aside. */
-  const recallPassword = () => forgot.focus();
+  // Gated: under an opaque takeover this would throw focus at a link nobody
+  // can see, behind the screen.
+  const recallPassword = () => { if (stage.is(...FORM_STATES)) forgot.focus(); };
   recall.addEventListener('click', recallPassword);
   window.addEventListener('keydown', (event) => {
     if (event.key !== 'F1') return;
@@ -145,26 +169,116 @@ export function initForm({ stage, lane }) {
   });
 
   /* ---- Lockout ------------------------------------------------------- *
-     Counts down in the status line. Step 10 gives this its own full-bleed
-     supervisor screen; the till is genuinely refusing input either way. */
-  function lockdown(seconds) {
-    let left = Math.max(1, Number(seconds) || 30);
-    clearTimeout(lockTimer);
+     The screen is the notice; the room is the alarm. This writes the digits,
+     the time and the reference, and one announcement at each end of the lock.
+     No colour and no class carrying meaning ever enters here - that all lives
+     in lockout.css, keyed off [data-state].
 
+     The clock is a deadline, not a decrement. setTimeout drifts, and a hidden
+     tab clamps it to about a second - printer.js documents this codebase
+     hitting exactly that on the paper feed. Thirty accumulated "about a
+     second"s would still be counting long after the service had forgotten the
+     lock. */
+  const pad = (n) => String(n).padStart(2, '0');
+  const mmss = (s) => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+  const lockRefFor = (d = new Date()) => `LK-04-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  let lockUntil = 0;
+
+  /* The lock's identity, kept beside its deadline. Neither the service nor the
+     stand-in records when a lock started or what it was called - only when it
+     ends - so a restore after a reload would mint a fresh reference and a
+     fresh clock from the time of the reload. The operator would then be
+     holding a receipt saying LK-04-1216 while the screen said LK-04-1217:
+     two references for one lock, which is the exact disagreement the single
+     generated ref exists to prevent. */
+  const LOCK_META = 'openlane.lockmeta';
+
+  function rememberLock(ref, clock) {
+    try { sessionStorage.setItem(LOCK_META, JSON.stringify({ ref, clock })); }
+    catch { /* storage can be denied; the lock still runs, it just cannot be recalled */ }
+  }
+
+  function recallLock() {
+    try { return JSON.parse(sessionStorage.getItem(LOCK_META)) || null; }
+    catch { return null; }
+  }
+
+  function paintLock() {
+    // Ceil, never floor: the screen must reach 00:00 no earlier than the
+    // service does. Rounding up is the direction that keeps the promise.
+    const left = Math.max(0, Math.ceil((lockUntil - performance.now()) / 1000));
+    if (lockCount) lockCount.textContent = mmss(left);
+    return left;
+  }
+
+  function stopLock() {
+    clearTimeout(lockTimer);
+    lockTimer = null;
+    lockUntil = 0;
+  }
+
+  function lockdown(seconds, { takeFocus = true, ref = lockRefFor(), clock = '' } = {}) {
+    const total = Math.max(1, Math.round(Number(seconds) || 30));
+    // A second locked answer resets the deadline rather than compounding it.
+    stopLock();
+    lockUntil = performance.now() + total * 1000;
+
+    const clockText = clock || new Date().toLocaleTimeString('en-GB', { hour12: false });
+    if (lockClock) lockClock.textContent = clockText;
+    if (lockRef) lockRef.textContent = ref;
+    rememberLock(ref, clockText);
+    paintLock();
+
+    // One polite announcement, not thirty. The status region is atomic, so a
+    // write per second would re-read the whole sentence and leave a queue that
+    // never drains.
+    setStatus(
+      `Terminal locked. A supervisor must unlock this till. Try again in ${total} seconds.`,
+      'error',
+    );
+
+    // Submit was disabled out from under the pointer, so focus is on nothing.
+    // Flush the style change first: the panel is visibility: hidden until the
+    // attribute lands and focusing a hidden element is a no-op. Reading a
+    // layout property forces that recalculation synchronously. A rAF would do
+    // it too, but a hidden tab never delivers one, and a lock can perfectly
+    // well land while the operator is looking at something else.
+    if (takeFocus && lockScreen) {
+      void lockScreen.offsetWidth;
+      lockScreen.focus({ preventScroll: true });
+    }
+
+    // Quarter-second polling, not one second: the deadline is the truth and
+    // this is only how often it is read, so a tab coming back repaints almost
+    // at once rather than showing a stale number for a whole second.
     const tick = () => {
-      if (left <= 0) {
-        setStatus('');
-        busy = false;
-        submit.disabled = false;
-        stage.set('idle');
-        sync();
-        return;
-      }
-      setStatus(`Terminal locked. A supervisor must unlock this till. ${left}s`, 'error');
-      left -= 1;
-      lockTimer = setTimeout(tick, 1000);
+      if (paintLock() > 0) { lockTimer = setTimeout(tick, 250); return; }
+      release();
     };
-    tick();
+    lockTimer = setTimeout(tick, 250);
+  }
+
+  // A hidden tab stops painting entirely. Repaint the moment it comes back.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && lockUntil) paintLock();
+  });
+
+  function release() {
+    stopLock();
+    // The lock ends the way a decline ends: the password goes, the badge goes
+    // flat, and the paper is torn off so the next attempt starts on a clean
+    // roll rather than under a spent TERMINAL LOCKED receipt.
+    password.value = '';
+    badge.setCharged(false);
+    printer.tearOff();
+    busy = false;
+    submit.disabled = false;
+    stage.set('idle');            // re-enables the controls via the subscription
+    // Not setStatus('') - that restores the demo hint and would announce
+    // "Demo - dan@counterpoint.co / openlane" as the outcome of a lockout.
+    setStatus('Till unlocked. Enter your password to try again.', 'info');
+    sync();
+    password.focus();             // after enabling, or it is a no-op
   }
 
   /* ---- Submit -------------------------------------------------------- */
@@ -208,6 +322,10 @@ export function initForm({ stage, lane }) {
     const remaining = AUTH_MIN_MS - (performance.now() - started);
     if (remaining > 0) await sleep(remaining);
 
+    // login() may have degraded to the stand-in while this request was in
+    // flight. Say so before reporting its answer.
+    paintNet();
+
     if (result.ok) {
       stage.set('approved');
       setStatus(`Signed in as ${result.user.name}. ${result.user.role}.`, 'ok');
@@ -220,10 +338,14 @@ export function initForm({ stage, lane }) {
     }
 
     if (result.code === 'locked') {
+      // One reference, generated once, so the screen and the paper cannot
+      // disagree across a minute boundary.
+      const seconds = result.retryAfter || 30;
+      const ref = lockRefFor();
       stage.set('locked');
       shudder();
-      printer.print(lockedReceipt({ account: address, seconds: result.retryAfter || 30 }), { reduced });
-      lockdown(result.retryAfter);
+      printer.print(lockedReceipt({ account: address, seconds, ref }), { reduced });
+      lockdown(seconds, { ref });
       return;
     }
 
@@ -275,12 +397,41 @@ export function initForm({ stage, lane }) {
     setTimeout(() => email.focus(), 320);
   });
 
-  /* ---- Link state ---------------------------------------------------- */
-  probe().then((online) => {
-    if (net) net.textContent = online ? 'Online' : 'Offline';
-    if (!online) net.dataset.offline = '';
+  /* ---- Link state ---------------------------------------------------- *
+     Painted from the auth client's live state rather than once from the boot
+     probe. login() degrades to the offline stand-in the moment the service
+     stops answering, and a header still reading Online while credentials are
+     being checked against a map in the browser - under a different lock, from
+     a different attempt count - is the screen telling the operator something
+     that is not true. */
+  function paintNet() {
+    if (!net) return;
+    net.textContent = authState.offline ? 'Offline' : 'Online';
+    if (authState.offline) net.dataset.offline = '';
+    else delete net.dataset.offline;
+  }
+
+  probe().then(() => {
+    paintNet();
     if (authState.offline) {
       console.info('[auth] service unreachable - using the offline stand-in');
+    }
+    // A reload is not a way out. /api/health reports this caller's own lock
+    // and the stand-in keeps its deadline in sessionStorage, so the notice
+    // comes straight back up with the time that is actually left on it. No
+    // receipt and no shudder: nothing has just been declined. And no focus
+    // grab - the user asked for a page, not a panel.
+    if (authState.locked && authState.retryAfter > 0) {
+      // Reuse the reference and the time the lock was actually taken, so the
+      // restored notice still matches the receipt that came out of the printer.
+      const meta = recallLock() || {};
+      busy = true;
+      stage.set('locked');
+      lockdown(authState.retryAfter, {
+        takeFocus: false,
+        ...(meta.ref ? { ref: meta.ref } : {}),
+        ...(meta.clock ? { clock: meta.clock } : {}),
+      });
     }
   });
 

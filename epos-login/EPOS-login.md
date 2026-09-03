@@ -402,6 +402,39 @@ MANAGER · 00:30`, and the countdown ticks down on the screen in monospace.
 It is an honest, in-world rate limit — and considerably more pleasant than a red
 toast that says "too many attempts".
 
+**The screen is the notice; the room is the alarm.** By the time it appears the
+belt has stopped, the lane light is blinking amber, the reader has gone dark and
+a receipt is hanging out of the printer. A fifth surface shouting the same word
+would be a siren, so the notice does not shout: the interface goes away, and the
+only thing on it that moves is a band at the edge of the glass blinking on the
+lane light's own keyframe, so the screen and the lamp are visibly one machine.
+
+**It is set to the receipt's measure.** The document is 21 characters across —
+`WIDTH` in `printer.js` — so the rule rows are literally the strings the printer
+prints, and the two surfaces set identically. The keyhole stands exactly where
+the brand mark stands on the authorising screen, at exactly its size and drawn
+in the same 1-bit dither as the printed mark: where the badge was, there is now
+a lock. A reference (`LK-04-0941`) is generated once and appears on both the
+screen and the paper, so the event is something an operator can quote down a
+phone rather than a message that has scrolled away.
+
+**The countdown is derived from a deadline, never decremented.** `setTimeout`
+drifts and a backgrounded tab clamps it to roughly a second, so thirty
+accumulated "about a second"s would still be counting long after the service had
+forgotten the lock. It rounds up rather than down, so the screen never reaches
+zero before the service does.
+
+**A reload is not a way out.** `/api/health` reports whether the calling address
+is currently locked and how long is left, and the offline stand-in keeps its
+deadline in `sessionStorage`, so the notice comes straight back up with the time
+that is actually on it — without a receipt, without the shudder, and without
+stealing focus, because nothing has just been declined.
+
+The printed receipt and the plate say the same two words, `CALL MANAGER`,
+character for character. Nothing on the screen explains why: the lockout
+threshold is server policy, and the operator has already watched the count climb
+on four declined receipts.
+
 ---
 
 ## Details worth the effort

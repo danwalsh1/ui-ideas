@@ -74,6 +74,6 @@ reload. No build step, no dependencies, vanilla ES modules.
 | 7 | Authorising — **Phase 2 complete** | done |
 | 8 | Approved — **Phase 3a complete** | done |
 | 9 | Declined — **Phase 3b complete**, plus the sign-on receipt | done |
-| 10 | Supervisor lockout — Phase 3c | next |
-| 11 | Sound | |
+| 10 | Supervisor lockout — **Phase 3c complete** | done |
+| 11 | Sound | next |
 | 12 | Polish, responsive, contrast audit | |

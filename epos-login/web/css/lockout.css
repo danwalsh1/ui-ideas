@@ -1,0 +1,303 @@
+/* Phase 3c: the till stops trusting you.
+
+   The room has already said so - the belt has stopped, the lane light is
+   blinking amber, the reader has gone dark and there is a receipt hanging out
+   of the printer that says TERMINAL LOCKED. Four surfaces shouting the same
+   word is a siren, so this one does not shout. The interface goes away, a
+   notice takes its place, and the only thing on the screen that moves is a
+   band at the edge of the glass blinking on the lane light's clock.
+
+   The field is the amber plate the caps warning and the held-sale badge
+   already use, not a new colour and not a saturated one: --pending is 2.44:1
+   on white and 2.28:1 on this plate, so it is a lamp colour, never a text
+   ground. Every word here sits on hsl(41 92% 95%) or better.
+
+   The document is 21 characters across because WIDTH is 21 in printer.js. The
+   rule rows are the same strings the receipt prints, so the screen and the
+   paper set identically: one document off one machine, output twice. */
+
+/* ------------------------------------------------------------------ *
+ * The panes fold away, exactly as they do behind the other takeover.
+ * The transition itself is declared on .pos__body in authorising.css -
+ * re-declaring the shorthand here would replace it and the authorising
+ * fold would start running on these timings instead.
+ * ------------------------------------------------------------------ */
+:root[data-state="locked"] .pos__body {
+  opacity: 0;
+  scale: 0.94;
+  filter: blur(3px);
+}
+
+/* ------------------------------------------------------------------ *
+ * The notice
+ * z-index 4, above the authorising takeover's 3. data-state holds one
+ * value so the two can never be co-visible, but this is the state you
+ * cannot dismiss and the stack should say so.
+ * ------------------------------------------------------------------ */
+.lockout {
+  --cell: 0.3em;                   /* one dither cell; the pixel of this panel */
+
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  place-items: center;
+  padding: 1.3em 1.3em 1em;
+  overflow: hidden;
+  background:
+    radial-gradient(76% 64% at 50% 40%,
+      hsl(41 92% 95%) 0%,
+      hsl(41 92% 95%) 52%,
+      hsl(39 92% 92%) 78%,
+      hsl(38 90% 91%) 100%);
+  color: var(--ink);
+  opacity: 0;
+  visibility: hidden;
+  /* Hit-testing is keyed to the state, not to the transition. On the way out
+     the panel is held visible for the full 420ms so the fade can be seen, and
+     for that whole window a transparent full-bleed element sits over the form
+     at z-index 4 and eats every click aimed at it. Worse, a tab that is not
+     being rendered never runs the transition at all, so it would sit there
+     indefinitely. This one declaration means the panel is only ever clickable
+     while it is the thing on screen. */
+  pointer-events: none;
+  /* visibility is the inertness: out of hit-testing and out of the
+     accessibility tree in one property. The 0s / 420ms pair is the whole
+     trick - entering flips it instantly so the fade is seen, leaving holds
+     it until the fade-out has finished. Same idiom as .authorising. */
+  transition:
+    opacity 420ms var(--ease),
+    visibility 0s linear 420ms;
+}
+
+/* The authorising takeover arrives with energy - it scales in from 1.04
+   while paper feeds across it. This one has none. It fades, and it is simply
+   there. Delayed past the shudder so the screen takes the impact first and
+   the notice is already standing when it stops ringing. */
+:root[data-state="locked"] .lockout {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 220ms, 0s;
+}
+
+/* Focus is moved here by script, so a ring would be noise. A keyboard user
+   who Shift-Tabs back onto it still gets one. */
+.lockout:focus { outline: none; }
+.lockout:focus-visible { outline: 2px solid var(--brand); outline-offset: -0.4em; }
+
+/* ---- The edge ----------------------------------------------------- *
+   The only saturated amber on the screen and the only thing on it that
+   moves. It runs the lane light's own keyframe at the lane light's own
+   duration and stepping, and both animations are created in the same style
+   change, so they start on the same tick and stay in phase for the whole
+   lock: one machine, two lamps. On a narrow screen the lane light, the
+   printer and the reader are all hidden and this is the only blink left in
+   the frame - which is the reason it is on the screen at all.
+
+   --pending cannot carry 3:1 on its own (2.28:1 on this field), so the
+   hairline on its inner edge holds the shape at 7.00:1 whatever a customer
+   later does to the token. */
+.lockout__edge {
+  position: absolute;
+  inset: 0;
+  border: 0.45em solid var(--tone);
+  box-shadow: inset 0 0 0 1px hsl(33 88% 26% / 0.6);
+  pointer-events: none;
+}
+:root[data-state="locked"] .lockout__edge {
+  animation: lightblink 1.6s steps(1) infinite;    /* declared in stage.css */
+}
+
+/* ------------------------------------------------------------------ *
+ * The document
+ * 21ch of monospace. ch is font-relative, so it still scales with the
+ * POS clamp. Everything sits in the centre band, which is the part of
+ * the screen the glass sheet does not veil.
+ * ------------------------------------------------------------------ */
+.lockout__doc {
+  display: grid;
+  justify-items: center;
+  gap: 0.5em;
+  width: 21ch;
+  max-width: 100%;
+  font-family: var(--mono);
+  line-height: 1.32;
+  text-transform: uppercase;
+  text-align: center;
+}
+.lockout__doc > p,
+.lockout__doc > h2 { margin: 0; }
+
+/* ---- The keyhole -------------------------------------------------- *
+   2.1em, and it sits exactly where the brand mark sits on the authorising
+   screen at exactly its size. Where the mark was, there is now a keyhole:
+   the till has taken its own badge off the screen.
+
+   Same mark-making as the receipt - the identical conic dither at the
+   identical 25%/50% duty as the printed brand mark, scaled to this panel's
+   cell rather than the print head's. The contour is solid because the
+   dither cannot carry the shape: a 50% checkerboard averages 1.78:1 against
+   this field in linear light, and that is a coverage limit, not a colour
+   one. */
+.lockout__key {
+  position: relative;
+  display: block;
+  width: 2.1em;
+  height: 2.6em;
+  margin-bottom: 0.1em;
+  color: #A25F04;                  /* 4.70:1 on the field - 1.4.11 wants 3:1 */
+}
+.lockout__key svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lockout__key-fill {
+  fill: currentColor;
+  -webkit-mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+  mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+  -webkit-mask-size: var(--cell) var(--cell);
+  mask-size: var(--cell) var(--cell);
+}
+.lockout__key-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+/* ---- Rules -------------------------------------------------------- *
+   Structure, not content, and out of the accessibility tree. 5.53:1 -
+   non-text, comfortably over 3:1.
+
+   Set at exactly 1em with no tracking, so that 21 monospace characters are
+   21ch and the rules span the document rather than 81% of it. The receipt
+   tightens its rules because there the whole sheet is the measure; here the
+   measure is the column, and a rule narrower than the rows it separates
+   reads as a mistake. */
+.lockout__rule {
+  font-size: 1em;
+  letter-spacing: normal;
+  color: #8A5A08;
+  white-space: pre;
+}
+
+/* The till says LOCKED in the same voice it said AUTHORISING - same size,
+   same weight, same face. The escalation happened in the room, not in the
+   type. */
+.lockout__title {
+  font-size: 1.05em;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-indent: 0.24em;             /* balance the trailing letter-space */
+  color: var(--ink);               /* 15.84:1 */
+}
+
+/* ---- The one number on the screen --------------------------------- *
+   Tabular, or thirty digits jitter on the way down - the same reason the
+   sale total and the header clock carry it.
+
+   Selected through the parent so it outranks the .lockout__doc > p margin
+   reset above, which is (0,1,1) and would otherwise silently win. */
+.lockout__doc > .lockout__count {
+  margin: 0.25em 0 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 2.4em;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: var(--ink);               /* 15.84:1 */
+}
+
+/* Names the timer without putting a word beside the digits. No house
+   utility for this yet, so it is scoped to the block. */
+.lockout__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---- Status rows --------------------------------------------------- *
+   The shape the receipt prints: label left, value right, filled to the
+   measure. These are the things the room is already doing, named. The
+   reader went dark with a comment promising the message would move to the
+   terminal screen at this step - this is that row. */
+.lockout__rows {
+  width: 100%;
+  margin: 0.2em 0 0;
+  display: grid;
+  gap: 0.1em;
+  font-size: 0.8em;
+}
+.lockout__rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1ch;
+  letter-spacing: 0.06em;
+}
+.lockout__rows dt { color: #6B4308; }    /* 8.07:1 - AAA */
+.lockout__rows dd { margin: 0; font-weight: 700; color: var(--ink); }
+
+.lockout__call {
+  font-size: 0.92em;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  color: var(--ink);               /* the receipt's words, character for character */
+}
+
+/* Metrics of the authorising foot, but not its ink: --ink-faint is 4.48:1 on
+   this ground and misses AA. #6B4308 is 7.52:1 on the dark end of the field
+   and 7.84:1 under the warm bottom-right corner of the glass, which lightens
+   the ground and raises the ratio rather than lowering it. */
+.lockout__foot {
+  align-self: end;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.68em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6B4308;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screen: the tracking is the first thing to give. The document
+ * is 21ch, so it needs no reflow - only air.
+ * ------------------------------------------------------------------ */
+@container screen (max-width: 460px) {
+  .lockout { padding: 0.9em 0.9em 0.7em; }
+  .lockout__doc { gap: 0.4em; }
+  .lockout__title { letter-spacing: 0.14em; text-indent: 0.14em; }
+  .lockout__count { font-size: 2em; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: the notice still appears and the clock still runs.
+ * The countdown is information, not decoration - it is the answer to the
+ * only question on the screen - and numerals changing once a second are a
+ * text update. The edge stops blinking and is held lit, which is the
+ * legible frame; a lamp pinned dark would read as a screen that had given
+ * up. The lane light's own blink and the screen shudder are already
+ * handled elsewhere and are not re-declared here.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  /* The full state selector, not just .lockout__edge. A media query carries
+     no specificity of its own, so a bare (0,1,0) rule loses to the (0,3,0)
+     one that starts the blink and the lamp keeps flashing at exactly the
+     user who asked it not to. stage.css repeats the selector for the lane
+     light for this reason; this is the same fix for the twin lamp. */
+  :root[data-state="locked"] .lockout__edge { animation: none; opacity: 1; }
+
+  /* Two durations, not one. The base rule sets two transition properties, so
+     a single value applies to BOTH longhands - visibility stops being an
+     instant flip, becomes a 140ms interpolation, and reads as `hidden` for
+     the whole of it. lockdown() flushes style and focuses the panel in the
+     same tick, so focusing would silently no-op and a reduced-motion user
+     would be left with no focused, named region for the full thirty
+     seconds. */
+  .lockout { transition-duration: 140ms, 0s; }
+}

@@ -75,6 +75,13 @@
 /* ---- Screen ------------------------------------------------------ */
 .terminal__screen {
   position: relative;
+  /* A stacking context, so that everything shown ON the screen stays UNDER
+     the glass. Without it the screen is position: relative with z-index
+     auto, so the full-bleed takeovers - authorising at 3, the lockout at 4 -
+     resolve against .terminal__body instead and paint over the glass sheet,
+     losing the reflection that is the only thing making them read as a
+     screen rather than a coloured rectangle. */
+  isolation: isolate;
   width: 100%;
   height: 100%;
   border-radius: clamp(5px, 0.7vw, 9px);
