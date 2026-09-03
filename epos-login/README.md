@@ -38,7 +38,10 @@ worth seeing, and the lock is held server-side, so reloading does not escape it.
   address and drawing a barcode.
 - **Type a password.** The chip wakes, the card reader lights and reads
   `READY`, the lane light goes amber and `F1` picks up the accent.
-- **Submit.** The whole counter goes amber and the belt stops while the server
+- **Submit.** The badge lifts out of its holder, flies to the scanner and gets
+  read, then slots into the card reader. The terminal takes over with a strip
+  of receipt paper feeding across as the progress indicator - no spinner
+  anywhere. The belt stops and the lane light turns amber while the server
   decides. Then green, or red.
 - **F1** recalls the password from anywhere on the page.
 
@@ -64,8 +67,8 @@ reload. No build step, no dependencies, vanilla ES modules.
 | 4 | Stage state machine | done |
 | 5 | Input choreography — **Phase 1 complete** | done |
 | 6 | Auth service | done |
-| 7 | Authorising — Phase 2 | next |
-| 8 | Approved — Phase 3a | |
+| 7 | Authorising — **Phase 2 complete** | done |
+| 8 | Approved — Phase 3a | next |
 | 9 | Declined — Phase 3b | |
 | 10 | Supervisor lockout — Phase 3c | |
 | 11 | Sound | |

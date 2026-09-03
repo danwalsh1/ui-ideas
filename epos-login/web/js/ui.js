@@ -11,6 +11,7 @@
 
 import { Badge } from './badge.js';
 import { login, probe, state as authState } from './auth.js';
+import { runHandoff } from './handoff.js';
 
 const $ = (sel) => document.querySelector(sel);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -37,8 +38,19 @@ export function initForm({ stage }) {
   const badge = new Badge($('.badge'));
 
   const idleStatus = status.textContent;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let busy = false;
   let lockTimer = null;
+
+  /* ---- Reachability -------------------------------------------------- *
+     While the counter is doing something, the controls are disabled rather
+     than the form being made inert: inert would also hide the live region,
+     and the status message is how this is announced. */
+  const controls = [email, password, reveal, submit, recall].filter(Boolean);
+  stage.on((name) => {
+    const live = FORM_STATES.includes(name);
+    for (const control of controls) control.disabled = !live;
+  });
 
   /* ---- Status ------------------------------------------------------- *
      The status line doubles as the demo hint when it has nothing to say,
@@ -163,11 +175,25 @@ export function initForm({ stage }) {
 
     busy = true;
     submit.disabled = true;
-    setStatus('');
     stage.set('authorising');
+    setStatus('Authorising. Do not remove card.', 'info');
 
     const started = performance.now();
-    const result = await login(address, password.value);
+
+    // The request and the hand-off run together, and both must finish. The
+    // badge must never still be in the air when the outcome lands.
+    const [result] = await Promise.all([
+      login(address, password.value),
+      runHandoff({
+        badgeEl: $('.badge'),
+        scannerEl: $('.scanner'),
+        glassEl: $('.scanner__glass'),
+        readerEl: $('.reader'),
+        slotEl: $('.reader__slot'),
+        reduced,
+      }),
+    ]);
+
     const remaining = AUTH_MIN_MS - (performance.now() - started);
     if (remaining > 0) await sleep(remaining);
 

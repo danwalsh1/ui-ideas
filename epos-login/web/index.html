@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="css/pos.css">
 <link rel="stylesheet" href="css/lane.css">
 <link rel="stylesheet" href="css/stage.css">
+<link rel="stylesheet" href="css/authorising.css">
 </head>
 <body>
 
@@ -230,6 +231,18 @@
               <span aria-hidden="true"><b>F3</b> Language</span>
               <span class="fkeys__spacer" aria-hidden="true"></span>
               <span aria-hidden="true">Settings</span>
+            </div>
+
+            <!-- Phase 2. The status is announced through the live region in
+                 the form, which stays reachable, so this is decoration. -->
+            <div class="authorising" aria-hidden="true">
+              <div class="authorising__inner">
+                <svg class="authorising__mark"><use href="#cp-mark"/></svg>
+                <div class="authorising__strip"><div class="authorising__feed"></div></div>
+                <p class="authorising__line">Authorising</p>
+                <p class="authorising__sub">Do not remove card</p>
+              </div>
+              <p class="authorising__foot">Till 04 · Counterpoint</p>
             </div>
 
           </div>
